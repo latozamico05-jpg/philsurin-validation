@@ -1,0 +1,22 @@
+# Render Blueprint — 1-click deploy, runs with your PC OFF
+# Steps: push this file -> Render dashboard -> New -> Blueprint -> connect repo -> Apply
+# Then add a FREE external MySQL (Aiven free tier) and paste its values as env vars.
+services:
+  - type: web
+    name: philsurin-validation
+    runtime: docker
+    plan: free
+    healthCheckPath: /health.php
+    envVars:
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASS
+        sync: false
+      - key: SESSION_HANDLER
+        value: db

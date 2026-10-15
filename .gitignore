@@ -40,3 +40,25 @@ philsurin_production.sql
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# ---- Local git helpers + push logs (never commit) ----
+FIX-PUSH-2.bat
+FIND-AND-FIX.bat
+FIX-EXISTING-PUSH.bat
+PUSH-FIX.bat
+PUSH-NOW.bat
+GITHUB-UPLOAD.bat
+GITHUB-UPLOAD.ps1
+INSTALL-PORTABLE-GIT.ps1
+get-git.ps1
+upload-to-github.js
+PUSH-LOG.txt
+portable-git/
+GitInstall.exe
+MinGit.zip
+test-uploader.js
+test-uploader-report.txt
+-
+-1
+c.clientWidth})
+
