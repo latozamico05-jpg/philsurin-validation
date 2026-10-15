@@ -42,6 +42,7 @@ desktop.ini
 .DS_Store
 
 # ---- Local git helpers + push logs (never commit) ----
+FINISH-ALL.bat
 FIX-PUSH-2.bat
 FIND-AND-FIX.bat
 FIX-EXISTING-PUSH.bat
