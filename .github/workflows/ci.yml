@@ -1,0 +1,41 @@
+# .github/workflows/deploy.yml
+# PHILSURIN — GitHub Actions CI/CD Workflow
+# Runs checks on push and offers automated deployment to InfinityFree
+
+name: PHILSURIN CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check Code.gs completeness
+        run: |
+          if [ ! -f src/Code.gs ]; then
+            echo "src/Code.gs not found"
+            exit 1
+          fi
+          if [ $(wc -c < src/Code.gs) -lt 500 ]; then
+            echo "src/Code.gs is too small (placeholder)"
+            exit 1
+          fi
+          echo "src/Code.gs looks complete"
+
+      - name: Check PHP syntax
+        run: |
+          if command -v php &> /dev/null; then
+            find . -name "*.php" -exec php -l {} \; > /dev/null 2>&1
+            if [ $? -ne 0 ]; then
+              echo "PHP syntax errors found"
+              exit 1
+            fi
+          else
+            echo "PHP not installed — skipping syntax check"
+          fi

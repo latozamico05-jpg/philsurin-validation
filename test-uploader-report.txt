@@ -1,0 +1,58 @@
+=== TEST 1: --yes with a BAD token must fail cleanly, not crash ===
+exit code: 1   (expect non-zero)
+mentions "Push failed" or auth error: true
+no raw stack trace: true
+
+  GitHub 401 GET /user: Bad credentials
+
+=== TEST 2: --yes --create with bad token ===
+exit code: 1   (expect non-zero)
+  GitHub 401 GET /user: Bad credentials
+
+=== TEST 0: --help ===
+
+=== TEST 3: --include-data changes the plan ===
+default         : 100 files, 2.3 MB
+--include-data  : 101 files, 2.4 MB
+data dump present by default : false
+data dump present WITH flag  : true
+largest-with-flag: 49.6 KB  database/philsurin_production.sql
+
+=== TEST 4: dry run must exit 0 and never call --yes paths ===
+exit: 0   says DRY RUN: true
+
+=== TEST 5: --pull dry run must not touch any file ===
+exit: 1
+folder unchanged after --pull dry run: true
+did it warn about no repo / token: true
+
+       18.8 KB  report.php
+  GitHub 401 GET /user: Bad credentials
+  Example:  node upload-to-github.js --repo philsurin --yes
+
+=== TEST 6: is index.php actually in the upload plan? ===
+  PRESENT index.php
+  PRESENT config.php
+  PRESENT validation-form.js
+  PRESENT grading_functions.php
+  PRESENT validation_data.php
+  PRESENT sidebar.php
+  PRESENT style.css
+  PRESENT location-id-preview.js
+
+=== SUMMARY ===
+  PASS  bad token exits non-zero
+  PASS  bad token has no stack trace
+  PASS  data dump excluded by default
+  PASS  data dump included with flag
+  PASS  dry run exits 0
+  PASS  dry run prints DRY RUN
+  PASS  --help exits 0
+  PASS  no cloudflared.exe in plan
+  PASS  seal PNG kept
+  PASS  index.php in folder walk
+  PASS  config.php in folder walk
+  PASS  validation-form.js kept
+  PASS  pull dry run changed nothing
+
+13/13 checks passed

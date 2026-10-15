@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PHILSURIN Variety Validation</title>
+<style>
+:root{--green:#1b5e20;--accent:#2e7d32;--bg:#f4f7f4;--card:#fff;--text:#1f2a20;--muted:#5f6f61;--danger:#b3261e;--ok:#1b5e20;--line:#d8e2d9}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+.hidden{display:none!important}
+.wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.08);width:100%;max-width:420px;padding:28px}
+.brand h1{margin:0 0 4px;font-size:22px;color:var(--green);letter-spacing:.5px}
+.brand p{margin:0 0 18px;color:var(--muted);font-size:14px}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:15px;background:#fff;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+textarea{min-height:84px;resize:vertical}
+button{cursor:pointer}
+.btn{width:100%;margin-top:18px;padding:12px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-size:15px;font-weight:600}
+.btn:hover{background:#1f6b24}
+.btn[disabled]{opacity:.6;cursor:not-allowed}
+.msg{margin-top:12px;padding:10px 12px;border-radius:8px;font-size:14px;display:none}
+.msg.err{display:block;background:#fdecea;color:var(--danger)}
+.msg.ok{display:block;background:#e7f4e8;color:var(--ok)}
+.topbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--green);color:#fff;padding:12px 18px;border-radius:0 0 12px 12px}
+.topbar h1{margin:0;font-size:17px}
+.topbar .right{display:flex;gap:10px;align-items:center}
+.who{font-size:13px}
+.logout{background:transparent;border:1px solid rgba(255,255,255,.7);color:#fff;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600}
+.logout:hover{background:rgba(255,255,255,.15)}
+.panel{max-width:560px;margin:18px auto;padding:22px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.06)}
+.hint{font-size:13px;color:var(--muted);margin:14px 0 0}
+@media(max-width:480px){.panel{margin:12px;padding:16px}.card{padding:20px}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN VIEW -->
+<div class="wrap" id="loginView">
+  <div class="card">
+    <div class="brand">
+      <h1>PHILSURIN</h1>
+      <p>Sugarcane Variety Validation</p>
+    </div>
+    <form id="loginForm" autocomplete="on">
+      <label for="username">Username</label>
+      <input id="username" name="username" autocomplete="username" required>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <div class="msg" id="loginMsg" role="alert"></div>
+      <button class="btn" id="loginBtn" type="submit">Log in</button>
+    </form>
+  </div>
+</div>
+
+<!-- APP VIEW -->
+<div class="hidden" id="appView">
+  <div class="topbar">
+    <h1>PHILSURIN Variety Validation</h1>
+    <div class="right">
+      <span class="who">Signed in as <b id="whoName"></b> <span id="whoRole"></span></span>
+      <button class="logout" id="logoutBtn" type="button">Log out</button>
+    </div>
+  </div>
+  <div class="panel">
+    <form id="valForm">
+      <label for="variety">Variety</label>
+      <select id="variety" required><option value="">Loading varieties&hellip;</option></select>
+      <label for="result">Result</label>
+      <select id="result" required>
+        <option value="">Choose result</option>
+        <option>Validated</option>
+        <option>Needs review</option>
+        <option>Rejected</option>
+      </select>
+      <label for="notes">Notes</label>
+      <textarea id="notes" placeholder="Optional notes"></textarea>
+      <div class="msg" id="saveMsg" role="alert"></div>
+      <button class="btn" id="saveBtn" type="submit">Save validation</button>
+    </form>
+    <p class="hint">Saved entries are written to the Validations sheet.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  function ready(fn) {
+    if (document.readyState !== 'loading') fn();
+    else document.addEventListener('DOMContentLoaded', fn);
+  }
+  ready(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var session = null;
+
+  // If opened outside Apps Script (preview/cached copy), explain instead of dead clicks.
+  var hasBackend = !!(window.google && google.script && google.script.run);
+  if (!hasBackend) {
+    setMsg($('loginMsg'), 'Open this page from the deployed web app URL so Log in can reach the server.');
+    $('loginBtn').disabled = true;
+  }
+
+  function show(el) { if (el) el.classList.remove('hidden'); }
+  function hide(el) { if (el) el.classList.add('hidden'); }
+  function setMsg(el, text, kind) {
+    if (!el) return;
+    el.textContent = text || '';
+    el.className = 'msg' + (text ? ' ' + (kind || 'err') : '');
+  }
+  function busy(btn, on, busyLabel) {
+    if (!btn) return;
+    if (on) { btn.dataset.label = btn.textContent; btn.textContent = busyLabel; btn.disabled = true; }
+    else { btn.textContent = btn.dataset.label || btn.textContent; btn.disabled = false; }
+  }
+
+  // ---- LOGIN (click OR Enter key — both submit this form) ----
+  $('loginForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if ($('loginBtn').disabled && session === 'busy') return;
+    var u = $('username').value.trim();
+    var p = $('password').value;
+    if (!u || !p) { setMsg($('loginMsg'), 'Enter your username and password.'); $('username').focus(); return; }
+    if (!hasBackend) { setMsg($('loginMsg'), 'Open this page from the deployed web app URL so Log in can reach the server.'); return; }
+    setMsg($('loginMsg'), '');
+    var btn = $('loginBtn');
+    session = 'busy';
+    busy(btn, true, 'Signing in…');
+    google.script.run
+      .withSuccessHandler(function (r) {
+        busy(btn, false);
+        if (!r || !r.ok) { session = null; setMsg($('loginMsg'), (r && r.message) || 'Login failed.'); $('password').focus(); $('password').select(); return; }
+        session = { username: r.username, role: r.role };
+        $('password').value = '';
+        enterApp();
+      })
+      .withFailureHandler(function (err) {
+        session = null;
+        busy(btn, false);
+        setMsg($('loginMsg'), (err && err.message) || 'Could not reach the server. Please try again.');
+      })
+      .login(u, p);
+  });
+
+  function enterApp() {
+    hide($('loginView'));
+    show($('appView'));
+    $('whoName').textContent = session.username;
+    $('whoRole').textContent = session.role ? '(' + session.role + ')' : '';
+    setMsg($('saveMsg'), '');
+    loadVarieties();
+  }
+
+  function loadVarieties() {
+    var sel = $('variety');
+    sel.innerHTML = '<option value="">Loading varieties…</option>';
+    google.script.run
+      .withSuccessHandler(function (rows) {
+        sel.innerHTML = '';
+        var ph = document.createElement('option');
+        ph.value = ''; ph.textContent = 'Choose a variety';
+        sel.appendChild(ph);
+        (rows || []).forEach(function (v) {
+          var o = document.createElement('option');
+          o.value = String(v[0]);
+          o.textContent = String(v[0]) + (v[1] ? ' — ' + v[1] : '');
+          sel.appendChild(o);
+        });
+        if (!rows || !rows.length) {
+          setMsg($('saveMsg'), 'No varieties found. Run setupValidationSheets in the script editor.', 'err');
+        }
+      })
+      .withFailureHandler(function (err) {
+        sel.innerHTML = '<option value="">Failed to load varieties</option>';
+        setMsg($('saveMsg'), (err && err.message) || 'Could not load varieties.', 'err');
+      })
+      .getVarieties();
+  }
+
+  // ---- SAVE VALIDATION ----
+  $('valForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!session || session === 'busy') { hide($('appView')); show($('loginView')); return; }
+    var v = $('variety').value, r = $('result').value, n = $('notes').value;
+    if (!v) { setMsg($('saveMsg'), 'Choose a variety first.'); return; }
+    if (!r) { setMsg($('saveMsg'), 'Choose a result first.'); return; }
+    setMsg($('saveMsg'), '');
+    var btn = $('saveBtn');
+    busy(btn, true, 'Saving…');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        busy(btn, false);
+        if (!res || !res.ok) { setMsg($('saveMsg'), (res && res.message) || 'Could not save.'); return; }
+        setMsg($('saveMsg'), res.message || 'Validation saved.', 'ok');
+        $('result').value = '';
+        $('notes').value = '';
+      })
+      .withFailureHandler(function (err) {
+        busy(btn, false);
+        setMsg($('saveMsg'), (err && err.message) || 'Could not save. Please try again.');
+      })
+      .saveValidation(session.username, v, r, n);
+  });
+
+  // ---- LOGOUT (clickable: clears session, resets form, returns to login) ----
+  $('logoutBtn').addEventListener('click', function () {
+    var btn = $('logoutBtn');
+    busy(btn, true, 'Signing out…');
+    function finishLogout() {
+      session = null;
+      busy(btn, false);
+      try { $('valForm').reset(); } catch (e) {}
+      $('variety').innerHTML = '<option value="">Loading varieties…</option>';
+      setMsg($('saveMsg'), '');
+      setMsg($('loginMsg'), 'You signed out.', 'ok');
+      hide($('appView'));
+      show($('loginView'));
+      $('username').focus();
+      if (hasBackend) { try { google.script.run.logout(); } catch (e) {} }
+    }
+    // Brief delay so the button visibly responds even on fast connections.
+    setTimeout(finishLogout, 150);
+  });
+
+  $('username').focus();
+  }); // end ready()
+})(); // end IIFE
+</script>
+</body>
+</html>
+

@@ -1,0 +1,7 @@
+{
+  "files.associations": { "*.gs": "javascript" },
+  "editor.tabSize": 2,
+  "editor.formatOnSave": false,
+  "files.eol": "\n",
+  "search.exclude": { "node_modules": true }
+}

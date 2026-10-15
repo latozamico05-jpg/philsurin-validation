@@ -1,0 +1,14 @@
+{
+  "name": "PHILSURIN Mobile — Encoding & Audit",
+  "short_name": "PHILSURIN",
+  "description": "Validator mobile access: grading encoding, audit trail, and report downloads.",
+  "start_url": "mobile.php",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#10243b",
+  "theme_color": "#0a7f5d",
+  "icons": [
+    { "src": "assets/philsurin-seal.png", "sizes": "any", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,42 @@
+# ---- Dependencies ----
+node_modules/
+
+# ---- Local backups and scratch files from debugging ----
+_*/
+_*.*
+*.bak
+*.bak.php
+*.pre-restore
+*.log
+
+# ---- Local editor / workspace settings ----
+.vscode/
+*.code-workspace
+
+# ---- Big local binaries and generated listings ----
+cloudflared.exe
+files_list.txt
+
+# ---- Secrets: never commit these ----
+NEW-CREDENTIALS.txt
+.clasp.json
+.env
+.env.*
+
+# ---- Screenshots (kept in assets/ instead) ----
+shot-*.png
+v2-*.png
+t1.png
+LIVE-PUBLISHED.png
+
+# ---- Local deploy artifacts ----
+philsurin-deploy.zip
+philsurin_production.sql
+
+# ---- Database dump used only for the InfinityFree import ----
+*.sql.local
+
+# ---- OS noise ----
+Thumbs.db
+desktop.ini
+.DS_Store

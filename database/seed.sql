@@ -1,0 +1,12 @@
+USE philsurin;
+INSERT IGNORE INTO roles(role_code,role_name,description) VALUES
+('ADMIN','Administrator','Full system administration'),('VIEWER','Viewer','Read-only authorized access'),('VALIDATOR_GERMINATION','Germination Validator','Can submit germination validation'),('VALIDATOR_FIELD','Field Validator','Can submit field grading validation'),('VALIDATOR_HARVEST','Harvest Validator','Can submit harvest records');
+INSERT IGNORE INTO varieties(code,name) VALUES
+('VMC 84-524','VMC 84-524'),('Phil 99-1793','Phil 99-1793'),('PSR 13-2121','PSR 13-2121'),('PSR 13-2189','PSR 13-2189'),('PSR 13-2237','PSR 13-2237'),('PSR 13-2298','PSR 13-2298'),('PSR 13-2321','PSR 13-2321'),('PSR 13-2369','PSR 13-2369'),('PSR 16-129','PSR 16-129'),('PSR 16-175','PSR 16-175'),('PSR 16-264','PSR 16-264'),('PSR 16-267','PSR 16-267'),('PSR 16-45','PSR 16-45'),('PSR 16-460','PSR 16-460'),('PSR 16-59','PSR 16-59'),('PSR 17-06','PSR 17-06'),('PSR 17-116','PSR 17-116'),('PSR 17-178','PSR 17-178'),('PSR 17-191','PSR 17-191');
+INSERT IGNORE INTO measurement_definitions VALUES
+('GERMINATION','01_GRADING','Germination','NUMBER',1,1,1),('E_S','01_GRADING','E-S','NUMBER',1,1,2),('GS','01_GRADING','G-S','NUMBER',1,1,3),('REMARKS_01','01_GRADING','Remarks','TEXT',0,1,4),
+('UNIFORMITY','02_GRADING','Uniformity','NUMBER',0,1,1),('POPULATION_02','02_GRADING','Population','NUMBER',0,1,2),('HEIGHT_02','02_GRADING','Height','NUMBER',0,1,3),('SIZE_02','02_GRADING','Size','NUMBER',0,1,4),('GS_02','02_GRADING','GS','TEXT',0,1,5),('REMARKS_02','02_GRADING','Remarks','TEXT',0,1,6),
+('POPULATION_03','03_GRADING','Population','NUMBER',0,1,1),('HEIGHT_03','03_GRADING','Height','NUMBER',0,1,2),('SIZE_03','03_GRADING','Size','NUMBER',0,1,3),('ERECTNESS_03','03_GRADING','Erectness','TEXT',0,1,4),('GS_03','03_GRADING','GS','TEXT',0,1,5),('REMARKS_03','03_GRADING','Remarks','TEXT',0,1,6),
+('POPULATION_04','04_GRADING','Population','NUMBER',0,1,1),('HEIGHT_04','04_GRADING','Height','NUMBER',0,1,2),('SIZE_04','04_GRADING','Size','NUMBER',0,1,3),('ERECTNESS_04','04_GRADING','Erectness','TEXT',0,1,4),('GS_04','04_GRADING','GS','TEXT',0,1,5),('REMARKS_04','04_GRADING','Remarks','TEXT',0,1,6),
+('OBSERVATION','HARVEST','Observation','TEXT',0,1,1);
+INSERT INTO system_config(config_key,config_value,description) VALUES ('VALIDATION_TARGET','1200','Dashboard validation target'),('DEFAULT_REPLICATES','4','Number of raw replicates'),('ACTIVE_C45_MODEL',NULL,'Active production model'),('C45_MIN_CONFIDENCE','0.70','Minimum confidence') ON DUPLICATE KEY UPDATE config_value=VALUES(config_value);

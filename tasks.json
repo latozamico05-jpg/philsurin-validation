@@ -1,0 +1,10 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "Check Code.gs", "type": "npm", "script": "check", "problemMatcher": [] },
+    { "label": "Push to Apps Script", "type": "npm", "script": "push", "group": { "kind": "build", "isDefault": true }, "problemMatcher": [] },
+    { "label": "Watch and push", "type": "npm", "script": "watch", "isBackground": true, "problemMatcher": [] },
+    { "label": "Deploy web app", "type": "npm", "script": "deploy", "problemMatcher": [] },
+    { "label": "Open in browser", "type": "npm", "script": "open", "problemMatcher": [] }
+  ]
+}

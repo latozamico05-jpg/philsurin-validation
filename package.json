@@ -1,0 +1,20 @@
+{
+  "name": "philsurin-validation",
+  "version": "2026.9.25",
+  "private": true,
+  "description": "PHILSURIN Sugarcane Variety Validation - Google Apps Script project for VS Code (clasp)",
+  "scripts": {
+    "check": "node check.js",
+    "login": "clasp login",
+    "pull": "clasp pull",
+    "push": "npm run check && clasp push",
+    "watch": "npm run check && clasp push --watch",
+    "open": "clasp open",
+    "deploy": "npm run push && clasp deploy --description \"PHILSURIN web app\"",
+    "logs": "clasp logs --watch"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2",
+    "@types/google-apps-script": "^1.0.83"
+  }
+}

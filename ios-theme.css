@@ -1,0 +1,730 @@
+/* ==========================================================================
+   PHILSURIN · Liquid Glass theme
+   2026 iOS-inspired: layered translucency, backdrop blur + saturation,
+   rim light, specular highlights, continuous large radii, capsule controls.
+   Loaded on every page by config.php, so it wins over style.css and each
+   page's inline <style> (hence the !important overrides).
+   ========================================================================== */
+
+:root{
+  color-scheme:light;
+  --ink:#0f2a1f;
+  --muted:#5d7a6b;
+  --line:rgba(15,74,52,.10);
+  --surface:#ffffff;
+  --soft:#f4fbf6;
+  --green:#0a8f63;
+  --green-dark:#067a54;
+  --accent:#12b981;
+  --violet:#7c6cf6;
+  --sky:#37a2ff;
+  --shadow:0 24px 60px -14px rgba(16,74,50,.22);
+  --radius-xl:28px;
+  --radius-lg:22px;
+  --radius-md:16px;
+  --pill:999px;
+  --glass:linear-gradient(158deg,rgba(255,255,255,.78),rgba(238,250,244,.56));
+  --glass-strong:linear-gradient(158deg,rgba(255,255,255,.92),rgba(238,250,244,.74));
+  --glass-border:rgba(255,255,255,.72);
+  --glass-line:rgba(15,74,52,.09);
+  --glass-shadow:0 24px 60px -14px rgba(16,74,50,.22),0 8px 20px -10px rgba(16,74,50,.12),inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(15,74,52,.05);
+  --glass-blur:blur(34px) saturate(190%);
+  --primary-grad:linear-gradient(140deg,#12b981,#078c60 72%);
+}
+
+*{box-sizing:border-box}
+
+/* ---------- Canvas: soft aurora the glass can refract ---------- */
+/* Painted on <html> so it propagates to the whole canvas. Painting it on
+   <body> instead would break wherever body's box is shorter than the
+   viewport (collapsed margins), leaving visible flat-colour bands. */
+html{
+  min-height:100%;
+  background:
+    radial-gradient(1150px 720px at 10% -8%,rgba(18,185,129,.34),rgba(18,185,129,0) 64%),
+    radial-gradient(1000px 680px at 98% 2%,rgba(55,162,255,.28),rgba(55,162,255,0) 62%),
+    radial-gradient(1050px 820px at 64% 106%,rgba(124,108,246,.26),rgba(124,108,246,0) 64%),
+    radial-gradient(760px 620px at 22% 96%,rgba(18,185,129,.2),rgba(18,185,129,0) 62%),
+    linear-gradient(162deg,#f1faf4 0%,#f9fcf9 46%,#eaf5ef 100%)!important;
+  background-color:#eef8f2!important;
+  background-attachment:fixed!important;
+  background-repeat:no-repeat!important;
+}
+body{
+  margin:0!important;
+  background:transparent!important;
+  color:var(--ink)!important;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI Variable Text","Segoe UI",Inter,system-ui,sans-serif!important;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  letter-spacing:-.011em;
+}
+html,body{-webkit-tap-highlight-color:transparent}
+/* kill the legacy flat hero strip from style.css */
+body:before{display:none!important}
+/* fine grain so the glass has something to frost (no blend modes: avoids banding) */
+body:after{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
+  background-image:radial-gradient(rgba(255,255,255,.7) .6px,rgba(255,255,255,0) .6px);
+  background-size:4px 4px;
+}
+
+/* ---------- Typography ---------- */
+h1,h2,h3{letter-spacing:-.022em}
+h2{font-size:15px!important;font-weight:800!important;margin:0 0 16px!important;color:#123f2d!important}
+.hint{color:var(--muted)!important;font-size:11.5px!important;line-height:1.5}
+.hint b{color:var(--green)!important}
+label{color:#3f6353!important;font-weight:800!important;letter-spacing:.32px}
+::selection{background:rgba(18,185,129,.28);color:#083a27}
+
+/* ---------- Shell / layout ---------- */
+main{max-width:1540px}
+body:has(.sidebar){padding-left:294px!important}
+body:has(.sidebar) main{max-width:1600px;padding:30px 34px 56px}
+body:has(.sidebar) main>header{display:none!important}
+main{animation:lg-rise .5s cubic-bezier(.22,.9,.3,1) both}
+@keyframes lg-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ---------- Glass surfaces ---------- */
+.card,
+.report-page,
+.trial-location-panel,
+.summary-card,
+.replicates article,
+.location-edit-dialog,
+.encoding-progress,
+.metric{
+  background:var(--glass)!important;
+  border:1px solid var(--glass-border)!important;
+  border-radius:var(--radius-xl)!important;
+  box-shadow:var(--glass-shadow)!important;
+  -webkit-backdrop-filter:var(--glass-blur);
+  backdrop-filter:var(--glass-blur);
+}
+.card{padding:22px!important;margin:14px 0!important}
+.card+.card{margin-top:16px!important}
+.report-page{
+  border-radius:var(--radius-lg)!important;
+  box-shadow:0 30px 70px -20px rgba(16,74,50,.26),inset 0 1px 0 rgba(255,255,255,.9)!important;
+}
+.trial-location-panel,.summary-card{border-radius:var(--radius-lg)!important}
+.replicates article{border-radius:var(--radius-lg)!important;padding:18px!important}
+.replicates small{
+  background:rgba(18,185,129,.14)!important;color:#07714f!important;
+  border-radius:var(--pill)!important;padding:6px 11px!important;
+  font-weight:800;letter-spacing:.3px;
+}
+.replicates h3{font-weight:800}
+
+/* ---------- Floating glass sidebar dock ---------- */
+body:has(.sidebar) aside.sidebar{
+  top:16px!important;left:16px!important;bottom:16px!important;width:262px!important;
+  border-radius:30px!important;
+  border:1px solid var(--glass-border)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.84),rgba(240,250,245,.66))!important;
+  box-shadow:0 30px 70px -22px rgba(16,74,50,.30),0 6px 18px -10px rgba(16,74,50,.16),inset 0 1px 0 rgba(255,255,255,.96),inset 0 -1px 0 rgba(15,74,52,.06)!important;
+  -webkit-backdrop-filter:var(--glass-blur);
+  backdrop-filter:var(--glass-blur);
+  color:#1b4433!important;
+}
+.sidebar-brand{
+  display:flex;align-items:center;gap:10px;margin:4px 6px 14px;padding:4px 4px 15px;
+  border-bottom:1px solid var(--glass-line);color:#067a54;font-size:20px;font-weight:800;
+  line-height:1.1;white-space:nowrap;letter-spacing:-.02em;
+}
+body:has(.sidebar) .sidebar .user-chip{
+  margin:6px 4px 22px!important;padding:11px!important;
+  border:1px solid rgba(255,255,255,.75)!important;
+  border-radius:20px!important;
+  background:linear-gradient(158deg,rgba(255,255,255,.82),rgba(243,251,246,.6))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 8px 20px -12px rgba(16,74,50,.25)!important;
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+}
+body:has(.sidebar) .sidebar .user-avatar{
+  background:var(--primary-grad)!important;color:#fff!important;
+  box-shadow:0 8px 18px -8px rgba(9,140,96,.75),inset 0 1px 0 rgba(255,255,255,.45);
+}
+body:has(.sidebar) .sidebar .user-chip b{color:#0f2a1f!important}
+body:has(.sidebar) .sidebar .user-chip small{color:var(--muted)!important;letter-spacing:.4px}
+body:has(.sidebar) .sidebar .nav-label{color:#6d8b7c!important;letter-spacing:1.3px}
+body:has(.sidebar) .sidebar .nav-link,
+body:has(.sidebar) .sidebar .logout-link{
+  color:#3f6353!important;border-radius:var(--pill)!important;
+  transition:transform .18s cubic-bezier(.2,.8,.2,1),background-color .18s,box-shadow .18s,color .18s;
+}
+body:has(.sidebar) .sidebar .nav-link:hover,
+body:has(.sidebar) .sidebar .logout-link:hover{
+  color:#0b5e40!important;background:rgba(255,255,255,.72)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 8px 18px -12px rgba(16,74,50,.35)!important;
+  transform:translateY(-1px);
+}
+body:has(.sidebar) .sidebar .nav-link.active{
+  color:#fff!important;background:var(--primary-grad)!important;
+  box-shadow:0 12px 26px -10px rgba(9,140,96,.7),inset 0 1px 0 rgba(255,255,255,.5)!important;
+  transform:none;
+}
+body:has(.sidebar) .sidebar .nav-link.active .nav-icon{color:#eafff6!important}
+body:has(.sidebar) .sidebar .nav-badge{background:#e11d48!important;color:#fff!important}
+body:has(.sidebar) .sidebar .nav-link.active .nav-badge{background:#fff!important;color:#e11d48!important}
+body:has(.sidebar) .sidebar .logout-link{border-top:1px solid var(--glass-line)!important}
+/* The Log out label must stay centered in the sidebar (it renders left-aligned
+   when a later, higher-specificity rule wins over sidebar.php's inline style). */
+body:has(.sidebar) .sidebar a.logout-link{justify-content:center!important;text-align:center!important}
+body:has(.sidebar) .nav-link,body:has(.sidebar) .sidebar .logout-link{min-height:44px}
+
+/* ---------- Controls: capsule buttons ---------- */
+/* `.stage` also names the <th> group headers of the audit report table
+   (report.php). Those must stay table cells — never capsule buttons —
+   otherwise display:inline-flex strips them out of the header row.
+   So every capsule mention of .stage is scoped with :not(th). */
+button,.smallbtn,.stage:not(th),.action-button,.save,
+.location-action,.location-edit-actions button,.toolbar button,.toolbar a{
+  border-radius:var(--pill)!important;
+  border:1px solid rgba(255,255,255,.6)!important;
+  font-family:inherit!important;
+  letter-spacing:.2px;
+  -webkit-backdrop-filter:blur(14px) saturate(160%);
+  backdrop-filter:blur(14px) saturate(160%);
+  transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s ease,background-color .18s ease,filter .18s ease;
+}
+button:hover,.smallbtn:hover,.stage:not(th):hover,.action-button:hover,
+.location-action:hover,.toolbar button:hover,.toolbar a:hover{transform:translateY(-1px)}
+button:active,.smallbtn:active,.stage:not(th):active,.action-button:active{transform:translateY(0) scale(.97)}
+
+/* Capsule metrics.
+   Several pages (audit_management.php, dashboard.php) use .smallbtn /
+   .action-button / .report-action without ever declaring display or padding for
+   them. Once this theme gives such a bare inline <a> a pill background, the
+   background shrinks to the glyph box and the label reads as vertically clipped
+   ("OPEN LOCATION REPORT" on the audit page). Give every control a real
+   capsule box here instead of relying on each page's own rules. */
+button,.smallbtn,.stage:not(th),.action-button,.save,
+.location-action,.report-action,.delete-action,
+.trial-location-heading a,
+.location-edit-actions button,
+.location-edit-save,.location-edit-cancel,
+.toolbar button,.toolbar a,
+input[type="submit"],input[type="button"],input[type="reset"]{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px;
+  padding:11px 18px!important;
+  min-height:40px;
+  line-height:1.15!important;
+  text-decoration:none!important;
+  white-space:nowrap;
+  vertical-align:middle;
+  font-size:11px!important;
+  font-weight:800!important;
+}
+/* …but action chips inside the dense data grids, and the toolbar, stay compact
+   (these selectors sit after the block above so they win on equal weight) */
+.trial-location-table .location-action,
+.trial-location-table button.location-action,
+.trial-location-heading a,
+.toolbar button,.toolbar a,
+.locations .smallbtn,.locations .action-button,
+.location-actions .smallbtn,.location-actions .action-button{
+  height:var(--ui-height)!important;
+  min-height:var(--ui-height)!important;
+  max-height:var(--ui-height)!important;
+  min-width:var(--ui-min-width)!important;
+  padding:0 var(--ui-pad-x)!important;
+  margin:0!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  box-sizing:border-box!important;
+  font-size:var(--ui-font)!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  flex:0 0 auto;
+  border-radius:var(--pill)!important;
+}
+/* Square indicators (✓ / □ matrix cells) must stay square, never capsules */
+.check-link,.empty-box,
+.matrix .check-link,.matrix .empty-box,
+.matrix .check,.matrix .empty{
+  display:inline-grid!important;
+  place-items:center!important;
+  width:30px!important;height:30px!important;min-height:0!important;
+  padding:0!important;
+  font-size:12px!important;line-height:1!important;
+}
+
+/* Uniform control metrics live at the end of this file (after the Report-page
+   section) so they override the toolbar padding re-stated down there. */
+
+/* Primary: liquid gradient capsule */
+.save,.smallbtn,.report-action,.toolbar button,.toolbar a,
+.trial-location-heading a,
+button[name="login"],button[name="save_validation"],.location-edit-save{
+  background:var(--primary-grad)!important;color:#fff!important;
+  box-shadow:0 14px 30px -12px rgba(9,140,96,.7),inset 0 1px 0 rgba(255,255,255,.45)!important;
+}
+.save:hover,.smallbtn:hover,.report-action:hover,.toolbar button:hover,.toolbar a:hover,
+button[name="login"]:hover,button[name="save_validation"]:hover,.location-edit-save:hover{
+  box-shadow:0 18px 38px -12px rgba(9,140,96,.8),inset 0 1px 0 rgba(255,255,255,.5)!important;
+}
+
+/* Destructive */
+.danger,.delete-action,.action-button.danger,
+.location-edit-actions .danger,button[name="delete_location"]{
+  background:linear-gradient(140deg,#ef5350,#bb2d33)!important;color:#fff!important;
+  box-shadow:0 12px 26px -12px rgba(187,45,51,.7),inset 0 1px 0 rgba(255,255,255,.4)!important;
+}
+
+/* Secondary: frosted glass */
+.stage:not(th),.action-button,.action-button.secondary,.secondary,
+.location-edit-cancel,button[name="remove_location"],button[name="toggle_user"]{
+  background:linear-gradient(150deg,rgba(255,255,255,.8),rgba(240,250,245,.62))!important;
+  color:#24513c!important;
+  box-shadow:0 8px 20px -12px rgba(16,74,50,.4),inset 0 1px 0 rgba(255,255,255,.95)!important;
+}
+.stage:not(th):hover,.action-button:hover{background:rgba(255,255,255,.92)!important}
+.stage:not(th).active{
+  background:var(--primary-grad)!important;color:#fff!important;
+  box-shadow:0 12px 26px -10px rgba(9,140,96,.7),inset 0 1px 0 rgba(255,255,255,.5)!important;
+}
+/* Accent-less action chips (the EDIT button in the trial-location panel) still
+   carry the legacy slate #607080 base, which fights the glass palette. */
+.location-action:not(.report-action):not(.delete-action),
+.trial-location-table .location-action:not(.report-action):not(.delete-action),
+.action-button.secondary,.smallbtn.secondary{
+  background:linear-gradient(150deg,rgba(255,255,255,.8),rgba(240,250,245,.62))!important;
+  color:#24513c!important;
+}
+
+/* ---------- Inputs: frosted wells ---------- */
+input,select,textarea{
+  border:1px solid rgba(255,255,255,.7)!important;
+  border-radius:14px!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.86),rgba(255,255,255,.68))!important;
+  color:var(--ink)!important;
+  box-shadow:inset 0 1px 2px rgba(16,74,50,.07),0 1px 0 rgba(255,255,255,.65)!important;
+  -webkit-backdrop-filter:blur(12px) saturate(150%);
+  backdrop-filter:blur(12px) saturate(150%);
+  font-family:inherit!important;
+  transition:box-shadow .18s ease,border-color .18s ease,background-color .18s ease;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:rgba(18,185,129,.85)!important;
+  background:rgba(255,255,255,.96)!important;
+  box-shadow:0 0 0 4px rgba(18,185,129,.18),inset 0 1px 2px rgba(16,74,50,.05)!important;
+  outline:0;
+}
+input[readonly],input[disabled],select:disabled{
+  background:linear-gradient(180deg,rgba(244,251,246,.85),rgba(240,248,243,.7))!important;
+  color:#4c6b5c!important;box-shadow:inset 0 1px 2px rgba(16,74,50,.06)!important;
+}
+input[type="range"]{
+  -webkit-appearance:none;appearance:none;height:26px;padding:0;
+  background:transparent!important;box-shadow:none!important;border:0!important;cursor:pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track{
+  height:6px;border-radius:var(--pill);
+  background:linear-gradient(90deg,rgba(18,185,129,.55),rgba(55,162,255,.35));
+  box-shadow:inset 0 1px 2px rgba(16,74,50,.18);
+}
+input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;margin-top:-7px;
+  background:#fff;border:0;
+  box-shadow:0 4px 12px -2px rgba(16,74,50,.45),inset 0 -1px 1px rgba(15,74,52,.12);
+}
+input[type="range"]::-moz-range-track{height:6px;border-radius:var(--pill);background:rgba(18,185,129,.5)}
+input[type="range"]::-moz-range-thumb{width:18px;height:18px;border:0;border-radius:50%;background:#fff;box-shadow:0 4px 12px -2px rgba(16,74,50,.45)}
+
+/* ---------- Tables: glass with frosted headers ---------- */
+.table-wrap,.table-scroll,.trial-location-scroll{
+  border:1px solid rgba(255,255,255,.66)!important;
+  border-radius:18px!important;overflow:auto!important;
+  background:rgba(255,255,255,.42)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 10px 26px -18px rgba(16,74,50,.4)!important;
+  -webkit-backdrop-filter:blur(14px) saturate(150%);
+  backdrop-filter:blur(14px) saturate(150%);
+}
+table th{
+  background:rgba(231,246,239,.86)!important;color:#0d6b4b!important;
+  -webkit-backdrop-filter:blur(12px) saturate(150%);backdrop-filter:blur(12px) saturate(150%);
+  letter-spacing:.5px;font-weight:800;
+}
+table td{border-color:rgba(15,74,52,.10)!important;background:transparent!important}
+tbody tr{transition:background-color .16s ease}
+tbody tr:hover{background:rgba(255,255,255,.55)!important}
+.mini-table th,.mini-table td{border-bottom:1px solid rgba(15,74,52,.09)!important}
+.audit,.locations,.user-table,.matrix,.trial-location-table{
+  border-collapse:separate!important;border-spacing:0!important;border-radius:16px!important;overflow:hidden;
+}
+.audit th,.audit td,.locations th,.locations td,
+.user-table th,.user-table td,.matrix th,.matrix td,
+.trial-location-table th,.trial-location-table td{border-color:rgba(255,255,255,.6)!important}
+.trial-location-table tr.selected td,.audit tr.selected{background:rgba(18,185,129,.14)!important}
+.trial-location-table .location-id{color:#5b3fbf!important;font-weight:700}
+.audit tr.pick:hover{background:rgba(255,255,255,.5)!important}
+.matrix .check-link{
+  background:var(--primary-grad)!important;color:#fff!important;border:1px solid rgba(255,255,255,.55)!important;
+  border-radius:10px!important;box-shadow:0 8px 18px -8px rgba(9,140,96,.7),inset 0 1px 0 rgba(255,255,255,.4);
+}
+.matrix .empty-box{
+  background:rgba(255,255,255,.5)!important;border:1px solid rgba(15,74,52,.18)!important;border-radius:10px!important;
+}
+
+/* ---------- Status messages & toasts ---------- */
+.ok,.error,.notice,.save-status{
+  border-radius:16px!important;padding:13px 16px!important;
+  border:1px solid rgba(255,255,255,.6)!important;
+  -webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+  box-shadow:0 14px 30px -14px rgba(16,74,50,.45),inset 0 1px 0 rgba(255,255,255,.7)!important;
+}
+.ok{color:#0b6b47!important;background:linear-gradient(140deg,rgba(213,246,228,.92),rgba(198,240,215,.8))!important}
+.error{color:#a3231d!important;background:linear-gradient(140deg,rgba(255,231,230,.95),rgba(255,219,217,.84))!important}
+.notice{color:#8a5a00!important;background:linear-gradient(140deg,rgba(255,246,225,.95),rgba(255,240,205,.85))!important}
+
+/* ---------- Login: hero glass panel ---------- */
+main.login,.login{
+  /* Leave a gutter on narrow screens: width:100% alone would make the card
+     flush with the viewport edge, clipping its rounded corners and shadow.
+     max-width:min(432px,100% - 32px) keeps a 16px gutter below 464px. */
+  width:100%!important;max-width:min(432px,calc(100% - 32px))!important;margin:11vh auto!important;
+  padding:40px 36px 34px!important;
+  border:1px solid var(--glass-border)!important;
+  border-radius:36px!important;
+  background:var(--glass-strong)!important;
+  box-shadow:0 44px 100px -28px rgba(16,74,50,.4),0 10px 30px -16px rgba(16,74,50,.25),inset 0 1px 0 rgba(255,255,255,.98)!important;
+  -webkit-backdrop-filter:blur(42px) saturate(195%);
+  backdrop-filter:blur(42px) saturate(195%);
+  text-align:center;
+}
+/* ---------- Password show / hide eye (inside the field, right side) ---------- */
+.pw-wrap{position:relative;display:block;width:100%}
+.pw-wrap>input{width:100%;padding-right:44px!important;margin:7px 0 0}
+.pw-eye{position:absolute;top:7px;right:6px;bottom:0;width:34px!important;min-width:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0 8px 8px 0!important;background:transparent!important;color:#7b8ea1!important;box-shadow:none!important;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:color .15s}
+.pw-eye:hover{background:transparent!important;color:#07865f!important}
+.pw-eye.is-on{background:transparent!important;color:#07865f!important}
+.pw-eye svg{pointer-events:none}
+
+/* ---------- Transparent brand seal ---------- */
+.login-brand-lockup{display:grid;justify-items:center;justify-content:center;text-align:center;width:100%;max-width:100%;margin:0 auto 22px;padding:0}
+.login-seal{display:block;width:5in;height:3in;max-width:92vw;max-height:42vh;object-fit:contain;background:transparent!important;margin:0 auto 12px;filter:drop-shadow(0 10px 22px rgba(16,74,50,.22))}
+/* ---------- Failed login: red notification ---------- */
+.login-error{
+  display:flex;align-items:flex-start;gap:9px;
+  margin:0 0 14px;padding:12px 14px;border-radius:12px;
+  background:linear-gradient(160deg,#fdecea,#fbdad6)!important;
+  border:1px solid #f0a9a1!important;
+  box-shadow:0 6px 16px -8px rgba(180,35,24,.45)!important;
+  color:#8c1d13!important;font-size:12px!important;font-weight:700;
+  line-height:1.45;letter-spacing:.1px;
+}
+.login-error:before{
+  content:"!";flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  width:19px;height:19px;margin-top:1px;border-radius:50%;
+  background:#b42318;color:#fff;font-size:12px;font-weight:800;line-height:1;
+}
+.login-error-dismiss{
+  margin-top:10px;background:none!important;border:0;padding:4px 2px;
+  color:#8c1d13!important;font-size:9px!important;font-weight:800;
+  letter-spacing:.9px;text-decoration:underline;cursor:pointer;
+}
+.login-error-dismiss:hover{color:#b42318!important}
+
+.sidebar-brand{gap:12px;min-width:0}
+.sidebar-seal{display:block!important;flex:0 0 58px!important;width:58px!important;height:58px!important;max-width:58px!important;min-width:0;object-fit:contain;background:transparent!important;filter:drop-shadow(0 4px 10px rgba(0,0,0,.28))}
+.sidebar-brand>span{font-size:19px;font-weight:800;letter-spacing:.5px;white-space:nowrap;overflow:visible;text-overflow:clip;flex:0 0 auto}
+.sidebar-footer{color:#6d8b7c!important}
+.login-wordmark{margin:0 auto;text-align:center;color:#067a54;font-size:23px;font-weight:800;line-height:1.2;letter-spacing:-.02em}
+.login h1,.login-wordmark{font-size:23px!important}
+.login p{color:var(--muted)!important}
+.login input{margin-top:10px!important;text-align:left}
+.login button:not(.pw-eye){width:100%!important;margin-top:16px!important;padding:14px 18px!important;font-size:12px!important}
+.login small{display:block;margin-top:14px;color:var(--muted)!important;font-size:10.5px}
+.login form{display:grid;gap:2px}
+
+/* ---------- Dialog / sheet ---------- */
+.location-edit-dialog{
+  border:1px solid var(--glass-border)!important;
+  border-radius:28px!important;
+  background:var(--glass-strong)!important;
+  box-shadow:0 44px 100px -26px rgba(16,74,50,.5),inset 0 1px 0 rgba(255,255,255,.98)!important;
+  -webkit-backdrop-filter:blur(38px) saturate(190%);backdrop-filter:blur(38px) saturate(190%);
+}
+.location-edit-dialog::backdrop{
+  background:rgba(11,40,29,.42)!important;
+  -webkit-backdrop-filter:blur(10px) saturate(130%);backdrop-filter:blur(10px) saturate(130%);
+}
+.location-edit-form label{font-size:9px!important}
+.location-edit-close{color:#3f6353!important;border-radius:50%!important}
+.location-edit-close:hover{background:rgba(255,255,255,.7)!important}
+
+/* ---------- Dashboard ---------- */
+.dashboard-title{align-items:flex-end;margin-bottom:18px}
+.dashboard-title h1{font-size:27px!important;font-weight:800;letter-spacing:-.03em}
+.live-pill{
+  background:linear-gradient(140deg,rgba(213,246,228,.92),rgba(198,240,215,.75))!important;
+  color:#0b6b47!important;border-radius:var(--pill)!important;
+  border:1px solid rgba(255,255,255,.7)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 8px 18px -12px rgba(16,74,50,.4)!important;
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+}
+.metric{padding:20px!important;overflow:hidden}
+.metric:after{background:radial-gradient(circle at 70% 70%,rgba(18,185,129,.3),transparent 68%)!important}
+.metric-label{color:var(--muted)!important;letter-spacing:.6px}
+.metric-value{
+  font-size:32px!important;font-variant-numeric:tabular-nums;letter-spacing:-.035em;
+  background:linear-gradient(140deg,#0f3f2c,#0a8f63);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.metric-accent{background:linear-gradient(140deg,#0a8f63,#12b981)!important;-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important}
+.progress-track{
+  height:14px!important;border-radius:var(--pill)!important;
+  background:rgba(255,255,255,.55)!important;
+  box-shadow:inset 0 1px 3px rgba(16,74,50,.14),inset 0 0 0 1px rgba(255,255,255,.6)!important;
+}
+.progress-fill{
+  background:linear-gradient(90deg,#12b981,#0a8f63)!important;
+  box-shadow:0 0 18px rgba(18,185,129,.55),inset 0 1px 0 rgba(255,255,255,.5);
+  transition:width .5s cubic-bezier(.22,.9,.3,1);
+}
+.empty-state{color:var(--muted)!important}
+.encoding-progress .stage-progress-track{border-radius:var(--pill)!important;background:rgba(255,255,255,.55)!important;box-shadow:inset 0 1px 3px rgba(16,74,50,.14)!important}
+.encoding-progress .stage-progress-fill{border-radius:var(--pill)!important;box-shadow:0 0 12px rgba(18,185,129,.4)}
+
+/* ---------- Report page ---------- */
+.report-page{background:var(--glass)!important;border:1px solid var(--glass-border)!important}
+.toolbar,.meta{
+  background:rgba(255,255,255,.62)!important;
+  border-color:rgba(255,255,255,.7)!important;
+  border-radius:18px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.85),0 10px 26px -18px rgba(16,74,50,.4)!important;
+  -webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%);
+}
+.toolbar{top:12px!important;margin-bottom:12px;flex-wrap:nowrap!important;overflow-x:auto!important;padding-top:6px!important;padding-bottom:6px!important}
+.toolbar button,.toolbar a{padding:9px 15px!important;flex:0 0 auto!important;white-space:nowrap!important}
+.meta{border:1px solid rgba(255,255,255,.7)!important;padding:10px 12px!important;margin:10px 0!important}
+.meta span{color:#2c5342}
+.report-page h1{font-weight:800;letter-spacing:.06em;color:#0d4230}
+.report{background:rgba(255,255,255,.6)!important;border-radius:14px}
+.report th{background:rgba(231,246,239,.9)!important;color:#0d6b4b!important}
+.report td{background:rgba(255,255,255,.72)!important;color:#16281f!important}
+.report .stage{background:rgba(210,242,226,.8)!important;color:#0a6b4a!important}
+.report .ave,.report .ave td{background:rgba(255,247,229,.85)!important;font-weight:800!important}
+.report .variety{color:#0d4230}
+.summary-card{background:var(--glass)!important}
+.summary-label{color:#4c6b5c!important}
+.summary-value{font-variant-numeric:tabular-nums;color:#0f2a1f}
+
+/* ==========================================================================
+   Uniform control metrics
+   ==========================================================================
+   Placed near the end of the file on purpose: the Report-page section above
+   re-states .toolbar padding (9px 15px) further down, so these metrics must
+   come after it to win.
+
+   Every pill button in a row shares ONE box size and ONE label size, so the
+   toolbar buttons and the per-row action chips all read as one tidy, even
+   set. The variables below are the single source of truth: change a value
+   here and every button in both groups resizes together. */
+:root{
+  --ui-font:10px;         /* label size for every pill button      */
+  --ui-pad-x:14px;        /* horizontal padding inside the pill    */
+  --ui-height:26px;       /* fixed pill height (label + padding)   */
+  --ui-min-width:92px;    /* floor so short labels aren't narrower */
+  --ui-gap:8px;           /* even rhythm between adjacent pills    */
+}
+/* The height is pinned (not just min-height) and padding is horizontal-only,
+   so every pill is exactly --ui-height no matter how long its label is. */
+.toolbar button,.toolbar a,
+.locations .smallbtn,.locations .action-button,
+.trial-location-table .location-action,
+.trial-location-table button.location-action,
+.location-actions .smallbtn,.location-actions .action-button{
+  height:var(--ui-height)!important;
+  min-height:var(--ui-height)!important;
+  max-height:var(--ui-height)!important;
+  min-width:var(--ui-min-width);
+  padding:0 var(--ui-pad-x)!important;
+  margin:0!important;
+  font-size:var(--ui-font)!important;
+  line-height:1!important;
+  letter-spacing:.3px;
+  justify-content:center!important;
+  box-sizing:border-box!important;
+  flex:0 0 auto;
+}
+/* The native file input sits between two pills in the report toolbar; give it
+   the same box height and label size so the row stays level. */
+.toolbar input[type="file"],
+.toolbar .import-form input[type="file"],
+.toolbar .excel-import input[type="file"]{
+  height:var(--ui-height)!important;
+  min-height:var(--ui-height)!important;
+  padding:0 10px!important;
+  font-size:var(--ui-font)!important;
+  line-height:calc(var(--ui-height) - 2px)!important;
+  border-radius:var(--pill)!important;
+  align-self:center;
+}
+/* Even spacing between the pills themselves. */
+.toolbar{gap:var(--ui-gap)!important}
+.toolbar .import-form,.toolbar .excel-import{gap:var(--ui-gap)!important;align-items:center!important}
+
+/* ---------- Row action groups: one line, uniform pills ----------
+   The chips used to be bare inline siblings of a block-level <details>, which
+   forced hard line breaks (REPORT / EDIT / REMOVE+DELETE on three rows).
+   Laying the cell out as an explicit flex row keeps every chip on ONE line:
+   <details> becomes a flex item rather than a block, and only the expanded
+   edit panel drops to its own full-width row. */
+.row-actions{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  align-items:center;
+  gap:var(--ui-gap);
+  overflow-x:auto;
+}
+.row-actions > *{min-width:0;flex:0 0 auto}
+.row-actions .inline{display:inline-flex!important;margin:0;align-items:center}
+/* The <details> wrapper: sized like the pills, and only expands when open. */
+.row-actions-edit{
+  display:inline-flex!important;
+  position:relative;
+  margin:0;
+  vertical-align:top;
+}
+.row-actions-edit > summary{
+  list-style:none;
+  cursor:pointer;
+  flex:0 0 auto;
+}
+.row-actions-edit > summary::-webkit-details-marker{display:none}
+/* Closed = same pill as its siblings. Open = the panel takes a full row of
+   its own beneath the chip line, so it is never clipped by the cell. */
+.row-actions-edit[open]{
+  display:block!important;
+  flex:1 0 100%;
+  margin-top:6px;
+}
+.row-actions-edit[open] > .edit-panel{
+  display:grid;
+  grid-template-columns:1fr 1fr auto;
+  gap:8px;
+  align-items:end;
+  width:100%;
+  margin:0;
+  padding:12px;
+  border-radius:var(--radius-md)!important;
+  background:rgba(255,255,255,.72)!important;
+  border:1px solid var(--glass-border)!important;
+  box-shadow:0 10px 26px -18px rgba(16,74,50,.4)!important;
+}
+/* Keep the expanded edit panel usable on narrow screens. */
+@media(max-width:760px){
+  .row-actions-edit[open] > .edit-panel{grid-template-columns:1fr}
+}
+
+/* ---------- Misc polish ---------- */
+.user-avatar{box-shadow:0 8px 18px -8px rgba(9,140,96,.7),inset 0 1px 0 rgba(255,255,255,.45)}
+.status-active{color:#0a8f63!important}
+.status-inactive{color:#a3231d!important}
+.empty,.empty-state{color:var(--muted)!important}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(15,74,52,.22);border-radius:var(--pill);border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(15,74,52,.34);background-clip:content-box}
+:focus-visible{outline:2px solid rgba(18,185,129,.9);outline-offset:2px}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media(max-width:1100px){
+  .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .dashboard-grid{grid-template-columns:1fr!important}
+}
+@media(max-width:760px){
+  body:has(.sidebar){padding-left:0!important}
+  body:has(.sidebar) main{width:100%;max-width:100%;padding:18px 14px 34px}
+  body:has(.sidebar) aside.sidebar{
+    position:relative!important;top:auto!important;left:auto!important;bottom:auto!important;
+    width:100%!important;height:auto!important;padding:14px!important;
+    border-radius:26px!important;margin-bottom:14px;
+  }
+  body:has(.sidebar) .sidebar .user-chip{margin:4px 2px 12px!important}
+  body:has(.sidebar) .sidebar-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+  body:has(.sidebar) .sidebar .nav-label{grid-column:1/-1}
+  body:has(.sidebar) .sidebar .logout-link{margin-top:10px!important;padding-top:12px!important}
+  body:has(.sidebar) .four,body:has(.sidebar) .three,body:has(.sidebar) .two{grid-template-columns:minmax(0,1fr)!important}
+  body:has(.sidebar) .toolbar{flex-wrap:wrap!important;gap:7px;padding:9px}
+  body:has(.sidebar) .size-control{width:100%;margin-left:0!important;flex-wrap:wrap}
+  body:has(.sidebar) .size-control input{max-width:55vw}
+  /* report.php has no .sidebar, so it needs its own scoped copy of these rules;
+     otherwise the non-wrapping toolbar pushes .size-control past the viewport. */
+  .report-page .toolbar{flex-wrap:wrap!important;gap:7px;padding:9px}
+  .report-page .size-control{width:100%;margin-left:0!important;flex-wrap:wrap}
+  .report-page .size-control input{width:140px;max-width:55vw}
+  body:has(.sidebar) .report-page{width:100%;max-width:100vw;min-width:0;padding:10px;border-radius:20px!important}
+  body:has(.sidebar) .table-scroll{max-width:100%;overflow:auto}
+  body:has(.sidebar) .trial-location-panel{padding:12px}
+  .card{border-radius:22px!important;padding:17px!important}
+  .replicates{grid-template-columns:1fr!important}
+}
+@media(max-width:560px){
+  .metric-grid{grid-template-columns:1fr!important}
+  .card{border-radius:20px!important;padding:15px!important}
+  /* main.login (0,1,1) outranks bare .login (0,1,0), so the selector must
+     mirror the base rule's specificity or this mobile tuning never applies. */
+  main.login,.login{border-radius:28px!important;padding:30px 22px 26px!important}
+}
+@media(max-width:420px){
+  body:has(.sidebar) main{padding:12px 10px 28px}
+  body:has(.sidebar) .sidebar .nav-link{padding:9px 11px;font-size:11px}
+  body:has(.sidebar) .toolbar button,body:has(.sidebar) .toolbar a{padding:8px 10px;font-size:10px}
+}
+
+/* ==========================================================================
+   Accessibility & graceful degradation
+   ========================================================================== */
+@media (prefers-reduced-transparency: reduce){
+  body:before,body:after{display:none!important}
+  html{background:#f2faf5!important}
+  body{background:transparent!important}
+  .card,.report-page,.trial-location-panel,.summary-card,.replicates article,
+  .metric,.location-edit-dialog,.encoding-progress,main.login,.login,
+  .toolbar,.meta,.table-wrap,.table-scroll,.trial-location-scroll,aside.sidebar{
+    background:#fff!important;
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  }
+  .card,.login{background:#fbfdfc!important}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.001ms!important;
+    scroll-behavior:auto!important;
+  }
+  button:hover,.smallbtn:hover,.stage:not(th):hover,.action-button:hover{transform:none!important}
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .card,.report-page,.trial-location-panel,.summary-card,.replicates article,
+  .metric,.location-edit-dialog,.encoding-progress,main.login,.login,
+  .toolbar,.meta,.table-wrap,.table-scroll,.trial-location-scroll,
+  aside.sidebar,body:has(.sidebar) .sidebar .user-chip{
+    background:linear-gradient(158deg,rgba(255,255,255,.97),rgba(240,250,245,.94))!important;
+  }
+}
+
+/* ==========================================================================
+   Print: glass does not print, so force a clean opaque sheet
+   ========================================================================== */
+@media print{
+  body,html{background:#fff!important}
+  body:before,body:after{display:none!important}
+  *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:none!important}
+  .card,.report-page,.trial-location-panel,.summary-card,.summary-card *,
+  .toolbar,.meta,.table-wrap,.table-scroll,.report{
+    background:#fff!important;border-color:#666!important;
+  }
+  .report th{background:#eee!important;color:#000!important}
+  .report td{background:#fff!important;color:#000!important}
+  .report .stage,.report .ave,.report .ave td{background:#f5f5f5!important;color:#000!important}
+}
