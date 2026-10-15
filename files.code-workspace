@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "../../Downloads/files"
+		}
+	],
+	"settings": {
+		"CodeGPT.apiKey": "Claude Code",
+		"Codegeex.RepoIndex": true
+	}
+}
