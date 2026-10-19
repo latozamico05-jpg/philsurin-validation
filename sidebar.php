@@ -47,7 +47,7 @@ body:has(.sidebar){padding-left:260px}body:has(.sidebar) main>header span{displa
     <?php if (strtolower((string) ($_SESSION['user']['role'] ?? 'viewer')) !== 'viewer'): ?>
     <a class="nav-link <?= $currentPage === 'locations.php' ? 'active' : '' ?>" href="locations.php">Trial locations</a>
     <?php endif ?>
-    <?php if (philsurin_is_admin()): ?>
+    <?php if (philsurin_can_audit() && !philsurin_is_admin()): ?>
     <a class="nav-link <?= in_array($currentPage, ['audit.php', 'audit_management.php'], true) ? 'active' : '' ?>" href="audit.php">Audit trail</a>
     <?php endif ?>
     <?php if (in_array(strtolower((string) ($_SESSION['user']['role'] ?? 'viewer')), ['admin'], true)): ?><a class="nav-link <?= $currentPage === 'users.php' ? 'active' : '' ?>" href="users.php">Manage users</a>
@@ -65,6 +65,7 @@ body:has(.sidebar){padding-left:260px}body:has(.sidebar) main>header span{displa
       }
   }
   ?>
+  <?php if (philsurin_is_admin()): ?>
   <div class="sidebar-audit">
       <div class="sidebar-audit-head">
           Audit logs
@@ -86,6 +87,7 @@ body:has(.sidebar){padding-left:260px}body:has(.sidebar) main>header span{displa
           <div class="sidebar-audit-msg">No system activity yet.</div>
       <?php endif; ?>
   </div>
+  <?php endif; ?>
   <a class="logout-link" href="index.php?logout=1">Log out</a>
   <div class="sidebar-footer">DEV. MICO C. LATOZA</div>
 </aside>

@@ -30,6 +30,13 @@ if(isset($_POST['login'])){
         session_regenerate_id(true);
         $_SESSION['user']=['id'=>$u['id'],'username'=>$u['username'],'role'=>$u['role']??'viewer'];
         audit_log((int)$u['id'],'LOGIN','USER',(string)$u['id']);
+        // AUTO-CONNECT: honor ?next= (e.g. audit-auto.php -> /audit.php) so the
+        // tunnel lands straight on audit.php after login — no second click.
+        $next = trim((string)($_GET['next'] ?? $_POST['next'] ?? ''));
+        if ($next !== '' && preg_match('#^(https://lnmmkbpg-3000\.asse\.devtunnels\.ms|https?://localhost(:\d+)?|https?://127\.0\.0\.1(:\d+)?)(/.*)?$#i', $next)) {
+            header('Location:' . $next);
+            exit;
+        }
         header('Location:'.(strtolower((string)($_SESSION['user']['role']??'viewer'))==='viewer'?'dashboard.php':'index.php'));
         exit;
     }
@@ -54,6 +61,7 @@ if(empty($_SESSION['user'])):
         <div class="login-error" role="alert" aria-live="assertive"><?=e($error)?></div>
     <?php endif; ?>
     <form method="post" autocomplete="off">
+        <?php if(!empty($_GET['next'])): ?><input type="hidden" name="next" value="<?=e((string)$_GET['next'])?>"><?php endif; ?>
         <input name="username" placeholder="Username" value="<?=e((string)($_POST['username']??''))?>" autocapitalize="off" autocorrect="off" spellcheck="false" required>
         <input name="password" type="password" placeholder="Password" autocomplete="current-password" required>
         <button name="login">LOG IN</button>

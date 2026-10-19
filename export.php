@@ -72,12 +72,36 @@ function export_header_labels(array $stages): array
     return $labels;
 }
 
+// Sheet-exact date row: one date cell centered under each stage block,
+// e.g. 05/07/24 under 01 GRADING, 07/23/2024 under 02/03/04, 12/01/204
+// style harvest date under HARVEST. Blank dates export as ''.
+function export_stage_date_row(array $stages, array $headerLabels, array $stageDates): array
+{
+    $row = array_fill(0, count($headerLabels), '');
+    $pos = 2;
+    foreach ($stages as $stage) {
+        $cols = stage_columns($stage);
+        $date = $stageDates[normalize_stage_name($stage)] ?? '';
+        if ($date !== '' && preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $m)) {
+            $date = $m[2] . '/' . $m[3] . '/' . substr($m[1], 2);
+        }
+        if ($date !== '' && count($cols) > 0) {
+            $row[$pos] = $date;
+        }
+        $pos += count($cols);
+    }
+    return $row;
+}
+
 $exportFormat = strtolower(trim((string) ($_GET['format'] ?? '')));
 $isTemplate = isset($_GET['template']) && (string) $_GET['template'] !== '' && (string) $_GET['template'] !== '0';
 if ($isTemplate) {
     $varieties = $db->query('SELECT code, name FROM varieties WHERE active=1 ORDER BY code')->fetchAll();
     $headerLabels = export_header_labels($stages);
     $fileBase = 'philsurin-import-template';
+    // Sheet-exact: stage blocks carry their field dates (01 = 05/07/24,
+    // 02/03/04 = 07/23/2024, Harvest = 12/01/204 in the photo).
+    $templateDates = ['01 GRADING' => '05/07/24', '02 GRADING' => '07/23/2024', '03 GRADING' => '07/23/2024', '04 GRADING' => '07/23/2024', 'HARVEST' => ''];
     if ($exportFormat === 'csv') {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $fileBase . '.csv"');
@@ -86,6 +110,16 @@ if ($isTemplate) {
         $out = fopen('php://output', 'w');
         fputcsv($out, ['Location ID', '', 'Location of Project', 'TYPE PROJECT HERE']);
         fputcsv($out, ['DR / DP', '', 'Date Planted', '', 'Control', '', 'Size of Field', '']);
+        // Stage-label row then date row then field row — mirrors the photo.
+        $stageLabelRow = array_fill(0, count($headerLabels), '');
+        $pos = 2;
+        foreach ($stages as $stage) {
+            $n = count(stage_columns($stage));
+            for ($k = 0; $k < $n; $k++) { $stageLabelRow[$pos + $k] = $k === 0 ? $stage : ''; }
+            $pos += $n;
+        }
+        fputcsv($out, $stageLabelRow);
+        fputcsv($out, export_stage_date_row($stages, $headerLabels, $templateDates));
         fputcsv($out, $headerLabels);
         foreach ($varieties as $variety) {
             $label = trim((string) ($variety['code'] ?? ''));
@@ -98,6 +132,10 @@ if ($isTemplate) {
                 $csvRow[1] = (string) $replicate;
                 fputcsv($out, $csvRow);
             }
+            // Ave. row per variety exactly like the photo.
+            $aveRow = array_fill(0, count($headerLabels), '');
+            $aveRow[1] = 'Ave.';
+            fputcsv($out, $aveRow);
         }
         fclose($out);
     } else {
@@ -110,7 +148,22 @@ if ($isTemplate) {
         echo excel_xml_styles();
         echo '<Worksheet ss:Name="Template"><Table>';
         echo excel_xml_row([excel_xml_cell('Location ID', 'hdr'), excel_xml_cell(''), excel_xml_cell('Location of Project', 'hdr'), excel_xml_cell('TYPE PROJECT HERE')]);
-        echo excel_xml_row([excel_xml_cell('DR / DP', 'hdr'), excel_xml_cell(''), excel_xml_cell('Date Planted', 'hdr'), excel_xml_cell(''), excel_xml_cell('Control', 'hdr'), excel_xml_cell(''), excel_xml_cell('Size of Field', 'hdr'), excel_xml_cell('')]);
+        echo excel_xml_row([excel_xml_cell('DP: January 18, 2024', 'hdr'), excel_xml_cell('Date Planted', 'hdr'), excel_xml_cell('', 'hdr'), excel_xml_cell('Control', 'hdr'), excel_xml_cell('', 'hdr'), excel_xml_cell('Size of Field', 'hdr'), excel_xml_cell('')]);
+        // Stage block row (merged, like photo: 01 GRADING / 02 GRADING / ...)
+        $stageBlock = [excel_xml_cell('Variety', 'hdr'), excel_xml_cell('Rep', 'hdr')];
+        foreach ($stages as $stage) {
+            $mergeAcross = max(0, count(stage_columns($stage)) - 1);
+            $stageBlock[] = '<Cell ss:MergeAcross="' . $mergeAcross . '" ss:StyleID="hdr"><Data ss:Type="String">' . htmlspecialchars($stage, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</Data></Cell>';
+        }
+        echo excel_xml_row($stageBlock);
+        // Date row under each block (photo: 05/07/24, 07/23/2024, ...).
+        $dateCells = [excel_xml_cell('', 'hdr'), excel_xml_cell('', 'hdr')];
+        foreach ($stages as $stage) {
+            $mergeAcross = max(0, count(stage_columns($stage)) - 1);
+            $d = $templateDates[normalize_stage_name($stage)] ?? '';
+            $dateCells[] = '<Cell ss:MergeAcross="' . $mergeAcross . '" ss:StyleID="hdr"><Data ss:Type="String">' . htmlspecialchars($d, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</Data></Cell>';
+        }
+        echo excel_xml_row($dateCells);
         echo excel_xml_row(array_map(function ($label) { return excel_xml_cell($label, 'hdr'); }, $headerLabels));
         foreach ($varieties as $variety) {
             $label = trim((string) ($variety['code'] ?? ''));
@@ -124,6 +177,10 @@ if ($isTemplate) {
                 }
                 echo excel_xml_row($cells);
             }
+            // Ave. row per variety exactly like the photo.
+            $ave = [excel_xml_cell(''), excel_xml_cell('Ave.')];
+            while (count($ave) < count($headerLabels)) { $ave[] = excel_xml_cell(''); }
+            echo excel_xml_row($ave);
         }
         echo '</Table></Worksheet>';
         echo '</Workbook>';
@@ -143,7 +200,25 @@ if ($exportFormat === 'csv') {
 		$groups = build_report_groups($locationRows);
 		$first = $locationRows[0];
 		fputcsv($out, ['Location ID', $locationId, 'Location of Project', $first['project_location'] ?? '']);
-		fputcsv($out, ['DR / DP', $first['dr_dp'] ?? '', 'Date Planted', $first['date_planted'] ?? '', 'Control', $first['control_name'] ?? '', 'Size of Field', $first['location_size'] ?? '']);
+		fputcsv($out, ['DP: ' . ($first['dr_dp'] ?? ''), 'Date Planted', $first['date_planted'] ?? '', 'Control', $first['control_name'] ?? '', 'Size of Field', $first['location_size'] ?? '']);
+		// Sheet-exact: stage block row + date row before the field header row.
+		$stageDates = [];
+		foreach ($stages as $stage) {
+		    foreach ($locationRows as $lr) {
+		        if (normalize_stage_name($lr['grading_stage'] ?? '') === normalize_stage_name($stage)) {
+		            if (!empty($lr['grading_date'])) { $stageDates[normalize_stage_name($stage)] = $lr['grading_date']; break; }
+		        }
+		    }
+		}
+		$stageLabelRow = array_fill(0, count($headerLabels), '');
+		$pos = 2;
+		foreach ($stages as $stage) {
+		    $n = count(stage_columns($stage));
+		    for ($k = 0; $k < $n; $k++) { $stageLabelRow[$pos + $k] = $k === 0 ? $stage : ''; }
+		    $pos += $n;
+		}
+		fputcsv($out, $stageLabelRow);
+		fputcsv($out, export_stage_date_row($stages, $headerLabels, $stageDates));
 		fputcsv($out, $headerLabels);
 		foreach ($groups as $group) {
 			for ($replicate = 1; $replicate <= 4; $replicate++) {
@@ -184,20 +259,35 @@ foreach ($locations as $locationId => $locationRows) {
 	$name = excel_sheet_name($locationId . ' ' . ($first['project_location'] ?? ''), $usedNames);
 	echo '<Worksheet ss:Name="' . htmlspecialchars($name, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '"><Table>';
 	echo excel_xml_row([excel_xml_cell('Location ID', 'hdr'), excel_xml_cell($locationId), excel_xml_cell('Location of Project', 'hdr'), excel_xml_cell($first['project_location'] ?? '')]);
-	echo excel_xml_row([excel_xml_cell('DR / DP', 'hdr'), excel_xml_cell($first['dr_dp'] ?? ''), excel_xml_cell('Date Planted', 'hdr'), excel_xml_cell($first['date_planted'] ?? ''), excel_xml_cell('Control', 'hdr'), excel_xml_cell($first['control_name'] ?? '')]);
+	echo excel_xml_row([excel_xml_cell('DP: ' . ($first['dr_dp'] ?? ''), 'hdr'), excel_xml_cell('Date Planted', 'hdr'), excel_xml_cell($first['date_planted'] ?? ''), excel_xml_cell('Control', 'hdr'), excel_xml_cell($first['control_name'] ?? ''), excel_xml_cell('Size of Field', 'hdr'), excel_xml_cell($first['location_size'] ?? '')]);
+	// Per-stage real dates + sizes (photo: 05/07/24 under 01, 07/23/2024 under 02/03/04).
+	$stageDates = [];
+	foreach ($stages as $stage) {
+	    foreach ($locationRows as $lr) {
+	        if (normalize_stage_name($lr['grading_stage'] ?? '') === normalize_stage_name($stage)) {
+	            if (!empty($lr['grading_date'])) { $stageDates[normalize_stage_name($stage)] = $lr['grading_date']; break; }
+	        }
+	    }
+	}
 	$stageHeader = [excel_xml_cell('Variety', 'hdr'), excel_xml_cell('Rep', 'hdr')];
 	foreach ($stages as $stage) {
 		$columns = stage_columns($stage);
-		$stageRows = array_filter($locationRows, function ($row) use ($stage) { return normalize_stage_name($row['grading_stage'] ?? '') === normalize_stage_name($stage); });
-		$stageRow = reset($stageRows) ?: [];
 		$label = $stage;
-		if ($stageRow) {
-			$label .= ' | SIZE OF FIELD: ' . ($stageRow['location_size'] ?? '') . ' | DATE: ' . ($stageRow['grading_date'] ?? '');
-		}
 		$mergeAcross = max(0, count($columns) - 1);
 		$stageHeader[] = '<Cell ss:MergeAcross="' . $mergeAcross . '" ss:StyleID="hdr"><Data ss:Type="String">' . htmlspecialchars($label, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</Data></Cell>';
 	}
 	echo excel_xml_row($stageHeader);
+	// Date row under each block (photo: 05/07/24, 07/23/2024, ...).
+	$dateCells = [excel_xml_cell('', 'hdr'), excel_xml_cell('', 'hdr')];
+	foreach ($stages as $stage) {
+	    $mergeAcross = max(0, count(stage_columns($stage)) - 1);
+	    $raw = $stageDates[normalize_stage_name($stage)] ?? '';
+	    if ($raw !== '' && preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $raw, $m)) {
+	        $raw = $m[2] . '/' . $m[3] . '/' . substr($m[1], 2);
+	    }
+	    $dateCells[] = '<Cell ss:MergeAcross="' . $mergeAcross . '" ss:StyleID="hdr"><Data ss:Type="String">' . htmlspecialchars($raw, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</Data></Cell>';
+	}
+	echo excel_xml_row($dateCells);
 	$fieldHeader = [excel_xml_cell('', 'hdr'), excel_xml_cell('', 'hdr')];
 	foreach ($stages as $stage) {
 		foreach (stage_columns($stage) as $column) {

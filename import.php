@@ -118,10 +118,48 @@ if (!$sheetRows) {
 }
 
 $headerIndex = -1;
+$stageRowIndex = -1;
+$dateRowIndex = -1;
 $header = [];
 foreach ($sheetRows as $index => $row) {
     $lower = array_map(function ($cell) { return strtolower(trim((string) $cell)); }, $row);
     if (in_array('variety', $lower, true) && in_array('rep', $lower, true)) {
+        // Could be the stage-block row (Variety|Rep|01 GRADING|02 GRADING...)
+        // or the true field row (Variety|Rep|01 GRADING | Germination|...).
+        // Peek ahead: if the NEXT rows contain another Variety|Rep row, this
+        // one is the block row — skip to the LAST such row (the field row).
+        $peek = $index + 1;
+        $lastMatch = $index;
+        while (isset($sheetRows[$peek]) && $peek < $index + 4) {
+            $peekLower = array_map(function ($cell) { return strtolower(trim((string) $cell)); }, (array) $sheetRows[$peek]);
+            if (in_array('variety', $peekLower, true) && in_array('rep', $peekLower, true)) {
+                $lastMatch = $peek;
+            }
+            $peek++;
+        }
+        // If this row's data cells look like bare stage names (no " | "),
+        // it is the block row — jump to the field row.
+        $bareStages = 0;
+        foreach ($lower as $cell) {
+            if (preg_match('/^(0[1-4] grading|harvest)$/', trim($cell))) { $bareStages++; }
+        }
+        if ($lastMatch !== $index) {
+            $stageRowIndex = $index;
+            $index = $lastMatch;
+            $lower = array_map(function ($cell) { return strtolower(trim((string) $cell)); }, (array) $sheetRows[$index]);
+        } elseif ($bareStages >= 2) {
+            // Block row followed by date row then field row: remember it and
+            // advance past the date row to the field row.
+            $stageRowIndex = $index;
+            $maybeDate = array_values((array) ($sheetRows[$index + 1] ?? []));
+            $maybeField = array_values((array) ($sheetRows[$index + 2] ?? []));
+            $maybeFieldLower = array_map(function ($cell) { return strtolower(trim((string) $cell)); }, $maybeField);
+            if (in_array('variety', $maybeFieldLower, true) && in_array('rep', $maybeFieldLower, true)) {
+                $dateRowIndex = $index + 1;
+                $index = $index + 2;
+                $lower = $maybeFieldLower;
+            }
+        }
         $headerIndex = $index;
         $header = $lower;
         break;
@@ -214,6 +252,39 @@ if ($fieldHeaderIndex >= 0) {
         }
     }
 }
+// Sheet-exact date row: in the photo each stage block has its own date UNDER
+// the block label (05/07/24 under 01, 07/23/2024 under 02/03/04). Map each
+// block's date to its stage by column position so every replicate keeps its
+// own grading_date — nothing defaults to today.
+if ($stageRowIndex >= 0 && $dateRowIndex < 0 && isset($sheetRows[$stageRowIndex + 1])) {
+    $peekCells = array_values((array) $sheetRows[$stageRowIndex + 1]);
+    $peekLower = array_map(function ($cell) { return strtolower(trim((string) $cell)); }, $peekCells);
+    if (!in_array('variety', $peekLower, true) && !in_array('rep', $peekLower, true)) {
+        $dateRowIndex = $stageRowIndex + 1;
+    }
+}
+if ($dateRowIndex >= 0) {
+    $stageCells = array_values((array) ($stageRowIndex >= 0 ? $sheetRows[$stageRowIndex] : []));
+    $dateCells = array_values((array) $sheetRows[$dateRowIndex]);
+    $width = max(count($stageCells), count($dateCells));
+    $runningStage = '';
+    for ($pos = 2; $pos < $width; $pos++) {
+        $stageLabel = normalize_stage_name(trim((string) ($stageCells[$pos] ?? '')));
+        if ($stageLabel === '' && $runningStage !== '') {
+            // Date row positions BETWEEN merged stage blocks: the date cell
+            // sits under the block, not necessarily on the label column.
+        } elseif ($stageLabel !== '') {
+            $runningStage = $stageLabel;
+        }
+        $cell = trim((string) ($dateCells[$pos] ?? ''));
+        if ($cell === '' || $runningStage === '') {
+            continue;
+        }
+        if (preg_match('/\d/', $cell)) {
+            $stageMetaDate[$runningStage] = $cell;
+        }
+    }
+}
 
 $meta = ['location_id' => '', 'project_location' => '', 'date_planted' => null, 'dr_dp' => null, 'control_name' => '', 'location_size' => '', 'grading_date' => date('Y-m-d')];
 for ($i = 0; $i < $headerIndex; $i++) {
@@ -258,7 +329,21 @@ $toDate = function ($value) {
     if ($value === '') {
         return null;
     }
-    foreach (['Y-m-d', 'm/d/Y', 'd/m/Y', 'm-d-Y', 'd-m-Y', 'Y/m/d'] as $format) {
+    // DP/date quirk in the photo: "DP: January 18, 2024" and harvest
+    // "12/01/204" (3-digit year typo). Strip the DP: prefix and repair
+    // 3-digit years (204 -> 2024) BEFORE parsing so nothing is lost.
+    $value = preg_replace('/^(DP|DR\s*\/\s*DP|DR|DATE)\s*:\s*/i', '', $value);
+    $value = trim($value);
+    if (preg_match('/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{3})$/', $value, $m)) {
+        $yy = $m[3];
+        // 204 -> 2024, 024 -> 2024, 194 -> 1994 style repair: assume 20xx
+        // when the 3-digit year starts with 2, else 19xx.
+        $full = ($yy[0] === '2' ? '2' . $yy : '1' . $yy);
+        if (strlen($full) === 4) { $full = substr($full, 0, 4); }
+        if (strlen($full) !== 4) { $full = '20' . substr($yy, -2); }
+        $value = $m[1] . '/' . $m[2] . '/' . $full;
+    }
+    foreach (['Y-m-d', 'm/d/Y', 'm/d/y', 'd/m/Y', 'm-d-Y', 'd-m-Y', 'Y/m/d', 'F j, Y', 'M j, Y'] as $format) {
         $parsed = DateTime::createFromFormat($format, $value);
         if ($parsed && $parsed->format($format) === $value) {
             return $parsed->format('Y-m-d');
@@ -327,7 +412,9 @@ foreach ($columnMap as $position => $label) {
     }
     $fieldPart = preg_replace('/^.*\|\s*/', '', $label);
     $fieldPart = strtolower(trim($fieldPart));
-    $aliases = ['germination' => 'a', 'e-s' => 'b', 'es' => 'b', 'g-s' => 'c', 'gs' => 'c', 'population' => 'a', 'height' => 'b', 'size' => 'c', 'uniformity' => 'd', 'cs' => 'e', 'observations' => 'remarks', 'remarks' => 'remarks', 'remark' => 'remarks'];
+    // Sheet-exact aliases from attached photo:
+    // 01 = Germination|E-S|GS|REMARKS · 02/03/04 = Uniformity|Popn|Height|Size|GS|REMARKS
+    $aliases = ['germination' => 'a', 'germinatio' => 'a', 'e-s' => 'b', 'es' => 'b', 'g-s' => 'c', 'gs' => 'c', 'germ' => 'a', 'population' => 'a', 'popn' => 'a', 'pop' => 'a', 'height' => 'b', 'size' => 'c', 'uniformity' => 'd', 'uniform' => 'd', 'niform' => 'd', 'cs' => 'e', 'observations' => 'remarks', 'observation' => 'remarks', 'remarks' => 'remarks', 'remark' => 'remarks'];
     $foundField = $aliases[$fieldPart] ?? '';
     if ($foundField === '') {
         foreach (stage_columns($foundStage) as $column) {

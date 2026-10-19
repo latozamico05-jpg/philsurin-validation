@@ -47,20 +47,23 @@ function stage_fields($stage): array
         return [
             ['label' => 'Germination', 'key' => 'a', 'type' => 'number'],
             ['label' => 'E-S', 'key' => 'b', 'type' => 'number'],
-            ['label' => 'G-S', 'key' => 'c', 'type' => 'number'],
-            ['label' => 'Remarks', 'key' => 'remarks', 'type' => 'textarea'],
+            ['label' => 'GS', 'key' => 'c', 'type' => 'number'],
+            ['label' => 'REMARKS', 'key' => 'remarks', 'type' => 'textarea'],
         ];
     }
     if ($stage === 'HARVEST' || strpos($stage, 'HARVEST') !== false) {
         return [['label' => 'Observations', 'key' => 'remarks', 'type' => 'textarea']];
     }
+    // EXACT sheet order from attached template photo:
+    // 02/03/04 GRADING = Uniformity | Popn | Height | Size | GS | REMARKS
+    // (Uniformity FIRST, GS not CS, Popn not Population)
     return [
-        ['label' => 'Population', 'key' => 'a', 'type' => 'number'],
+        ['label' => 'Uniformity', 'key' => 'd', 'type' => 'number'],
+        ['label' => 'Popn', 'key' => 'a', 'type' => 'number'],
         ['label' => 'Height', 'key' => 'b', 'type' => 'number'],
         ['label' => 'Size', 'key' => 'c', 'type' => 'number'],
-        ['label' => 'Uniformity', 'key' => 'd', 'type' => 'number'],
-        ['label' => 'CS', 'key' => 'e', 'type' => 'text'],
-        ['label' => 'Remarks', 'key' => 'remarks', 'type' => 'textarea'],
+        ['label' => 'GS', 'key' => 'e', 'type' => 'text'],
+        ['label' => 'REMARKS', 'key' => 'remarks', 'type' => 'textarea'],
     ];
 }
 

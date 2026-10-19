@@ -109,57 +109,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $who = $isSelf ? 'Your account' : 'Account ' . $target['username'];
             $message = $who . ' updated — username: ' . $newUsername . ', role: ' . ($ROLE_LABELS[$newRole] ?? $newRole) . ', status: ' . ($newActive ? 'ACTIVE' : 'INACTIVE') . ($newPassword !== '' ? ', password changed.' : ', password unchanged.');
-        } elseif (isset($_POST['add_variety'])) {
-            $code = trim((string) ($_POST['vcode'] ?? ''));
-            $name = trim((string) ($_POST['vname'] ?? ''));
-            if ($code === '') {
-                throw new InvalidArgumentException('Variety code is required.');
-            }
-            if (strlen($code) > 20) {
-                throw new InvalidArgumentException('Variety code must be 20 characters or fewer.');
-            }
-            if ($name === '') {
-                $name = $code;
-            }
-            // The same variety code may be used more than once (for example "PSR" with
-// different display names), so duplicate codes are allowed here.
-$ins = $db->prepare('INSERT INTO varieties(code,name,active) VALUES(?,?,1)');
-            $ins->execute([$code, $name]);
-            $message = 'Variety added: ' . $code . ($name !== $code ? ' (' . $name . ')' : '') . '. It is now selectable in Encoding, Report and Audit.';
-        } elseif (isset($_POST['edit_variety'])) {
-            $vid = (int) ($_POST['variety_id'] ?? 0);
-            $code = trim((string) ($_POST['vcode'] ?? ''));
-            $name = trim((string) ($_POST['vname'] ?? ''));
-            if ($code === '' || strlen($code) > 20) {
-                throw new InvalidArgumentException('Variety code is required and must be 20 characters or fewer.');
-            }
-            if ($name === '') {
-                $name = $code;
-            }
-            $updV = $db->prepare('UPDATE varieties SET code=?, name=?, active=? WHERE id=?');
-            $updV->execute([$code, $name, isset($_POST['vactive']) ? 1 : 0, $vid]);
-            $message = 'Variety updated: ' . $code . '.';
-        } elseif (isset($_POST['delete_variety'])) {
-            $vid = (int) ($_POST['variety_id'] ?? 0);
-            $target = $db->prepare('SELECT id, code, name FROM varieties WHERE id=?');
-            $target->execute([$vid]);
-            $targetRow = $target->fetch();
-            if (!$targetRow) {
-                throw new InvalidArgumentException('That variety no longer exists.');
-            }
-            // Confirm by ID + code, since codes may repeat.
-            if ((int) ($_POST['confirm_id'] ?? 0) !== $vid || trim((string) ($_POST['confirm_code'] ?? '')) !== $targetRow['code']) {
-                throw new InvalidArgumentException('Remove cancelled: the confirmation did not match variety ID ' . $vid . '.');
-            }
-            $used = (int) $db->query('SELECT COUNT(*) FROM grading_records WHERE variety_id=' . $vid)->fetchColumn();
-            if ($used > 0) {
-                // Keep encoded data intact: switch the variety off instead of deleting it.
-                $db->query('UPDATE varieties SET active=0 WHERE id=' . $vid);
-                $message = 'Variety ' . $targetRow['code'] . ' is used by ' . $used . ' encoded record(s), so it was removed from the lists (data kept).';
-            } else {
-                $db->query('DELETE FROM varieties WHERE id=' . $vid);
-                $message = 'Variety ' . $targetRow['code'] . ' deleted.';
-            }
         } elseif (isset($_POST['toggle_user'])) {
             $userId = (int) ($_POST['user_id'] ?? 0);
             if ($userId === (int) $_SESSION['user']['id']) {
@@ -187,11 +136,7 @@ $ins = $db->prepare('INSERT INTO varieties(code,name,active) VALUES(?,?,1)');
         $error = $exception->getMessage();
     }
 }
-// Which variety row is being edited inline (?evariety=… shows input fields).
-$editVarietyId = (int) ($_GET['evariety'] ?? 0);
 $users = $db->query('SELECT id,username,role,active FROM users ORDER BY username')->fetchAll();
-// Live variety list, read from the same `varieties` table used by Encoding and Report.
-$varieties = $db->query('SELECT id, code, name, active FROM varieties WHERE active=1 ORDER BY code')->fetchAll();
 // Which account is currently being edited (?id=… shows the inline edit row).
 $editId = (int) ($_GET['edit'] ?? 0);
 if ($editId) {
@@ -244,7 +189,6 @@ if ($editId) {
 <header><h1>PHILSURIN</h1><span><?=e($_SESSION['user']['username'])?> | <a href="dashboard.php">DASHBOARD</a></span></header>
 <?php if ($message): ?><p class="ok"><?=e($message)?></p><?php endif ?>
 <?php if ($error): ?><p class="error"><?=e($error)?></p><?php endif ?>
-<section class="card" id="variety-list"><div class="variety-head"><h2>Variety List <span class="count">(<?=count($varieties)?>)</span></h2><span class="note">Live from the system data — this exact list is used in Encoding, Report and Audit.</span></div><form method="post" class="variety-add"><input type="hidden" name="csrf" value="<?=e($_SESSION['users_csrf'])?>"><label style="flex:1;min-width:170px">Variety code<input name="vcode" required maxlength="20" placeholder="e.g. PSR 17-191"></label><label style="flex:1;min-width:170px">Display name <span class="note">(optional)</span><input name="vname" maxlength="150" placeholder="Defaults to the code"></label><button name="add_variety">Add Variety</button></form><div class="table-wrap"><table class="user-table variety-table"><thead><tr><th style="width:70px">ID</th><th>VARIETY CODE</th><th>DISPLAY NAME</th><th>STATUS</th><th style="width:230px">ACTIONS</th></tr></thead><tbody><?php foreach ($varieties as $v): $vid = (int) $v['id']; $isEditingV = $editVarietyId === $vid; ?><tr<?= $isEditingV ? ' class="edit-row"' : '' ?>><td><?=e($v['id'])?></td><?php if ($isEditingV): ?><td><input name="vcode" value="<?=e($v['code'])?>" required maxlength="20" form="vform<?= $vid ?>" aria-label="Variety code"></td><td><input name="vname" value="<?=e($v['name'])?>" maxlength="150" form="vform<?= $vid ?>" aria-label="Display name"></td><td><span class="pill pill-on">ACTIVE</span></td><td><form id="vform<?= $vid ?>" method="post" class="btnrow"><input type="hidden" name="csrf" value="<?=e($_SESSION['users_csrf'])?>"><input type="hidden" name="variety_id" value="<?= $vid ?>"><input type="hidden" name="vactive" value="1"><button name="edit_variety">Save</button><a class="uniform-btn secondary" href="users.php?varieties=1" style="text-decoration:none">Cancel</a></form></td><?php else: ?><td><strong><?=e($v['code'])?></strong></td><td><?=e($v['name'])?></td><td><span class="pill pill-on">ACTIVE</span></td><td><div class="btnrow"><a class="uniform-btn" href="users.php?varieties=1&amp;evariety=<?= $vid ?>" style="text-decoration:none">Edit</a><form method="post" style="display:inline" onsubmit="return confirm('Remove variety ID <?= $vid ?> (<?=e($v['code'])?>) from the list?')"><input type="hidden" name="csrf" value="<?=e($_SESSION['users_csrf'])?>"><input type="hidden" name="variety_id" value="<?= $vid ?>"><input type="hidden" name="confirm_id" value="<?= $vid ?>"><input type="hidden" name="confirm_code" value="<?=e($v['code'])?>"><button name="delete_variety" class="secondary">Remove</button></form></div></td><?php endif ?></tr><?php endforeach ?><?php if (!$varieties): ?><tr><td colspan="5">No varieties yet. Add one above.</td></tr><?php endif ?></tbody></table></div></section>
 <section class="card"><h2>Create Account</h2><form method="post" class="user-form"><input type="hidden" name="csrf" value="<?=e($_SESSION['users_csrf'])?>"><div class="grid two"><label>Username<input name="username" required autocomplete="off" placeholder="e.g. juan.delacruz"></label><label>Temporary password<input name="password" type="password" minlength="10" required autocomplete="new-password" placeholder="At least 10 characters"></label></div><label>Access role<select name="role" required><?php foreach ($ALLOWED_CREATE_ROLES as $roleKey): ?><option value="<?=e($roleKey)?>"><?=e(($ROLE_LABELS[$roleKey] ?? strtoupper($roleKey)) . ' — ' . ($ROLE_ACCESS[$roleKey] ?? ''))?></option><?php endforeach ?></select></label><p class="hint">Pick the access this account should get. Validator roles can open Encoding + Audit Trail on desktop and on the mobile app; viewers stay read-only<?php if ($accessRole === 'admin'): ?> — as an administrator you can also create Administrator accounts<?php endif ?>.</p><button name="create_validator">CREATE ACCOUNT</button></form></section>
 <section class="card"><h2>Accounts <span class="count">(<?=count($users)?>)</span></h2><div class="table-wrap"><table class="user-table"><thead><tr><th>USERNAME</th><th>ACCESS ROLE</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody><?php foreach ($users as $user):
     $roleKey = strtolower((string) $user['role']);

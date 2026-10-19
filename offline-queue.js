@@ -93,7 +93,7 @@
       if (j) try { localStorage.setItem('philsurin-lookups', JSON.stringify(j)); } catch (e) {}
     }).catch(function () {});
   }
-  // Intercept desktop form when offline: queue instead of failing
+  // Intercept desktop form when offline: queue in IndexedDB AND store in offline SQLite DB
   document.addEventListener('submit', function (ev) {
     var form = ev.target;
     if (!form || form.tagName !== 'FORM' || form.method.toLowerCase() !== 'post') return;
@@ -101,9 +101,26 @@
     if (!btn || btn.name !== 'save_validation') return;
     if (navigator.onLine) return; // online -> normal POST
     ev.preventDefault();
-    put(serializeForm(form)).then(function (rec) {
+    var rec = serializeForm(form);
+    // 1) Save to IndexedDB queue (existing behavior)
+    put(rec).then(function (r) {
       setPill();
-      alert('OFFLINE SAVED on this device (' + rec.client_id + '). It will sync to the server automatically when internet returns.');
+      // 2) Also POST to offline-store.php so it lands in the SQLite file on disk
+      //    (survives browser cache clear, works even if Apache is down but PHP CLI can run)
+      fetch('offline-store.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records: [rec] })
+      }).then(function (resp) { return resp.json(); }).then(function (j) {
+        if (j.ok) {
+          alert('OFFLINE SAVED (' + rec.client_id + '). Stored in local database. It will sync when the server is back online.');
+        } else {
+          alert('OFFLINE SAVED to queue (' + rec.client_id + '). Server store failed; will retry on sync.');
+        }
+      }).catch(function () {
+        alert('OFFLINE SAVED to queue (' + rec.client_id + '). Will sync when the server is back online.');
+      });
       try { syncNow(); } catch (e) {}
     });
   });

@@ -82,7 +82,7 @@ $stages = grading_stage_list($db);
 <body>
 <main>
 <header><h1>PHILSURIN</h1><span><a href="index.php">ENCODING</a> <a href="report.php">REPORT</a></span></header>
-<section class="card"><h2>System activity</h2><p class="hint">Who used the system, what they did, at which location, and when — latest 200 events.</p>
+<section class="card" style="display:none"><h2>System activity</h2><p class="hint">Who used the system, what they did, at which location, and when — latest 200 events.</p>
 <?php if($activityError):?><p class="hint"><?=e($activityError)?></p><?php endif?>
 <div class="table-wrap"><table class="audit"><thead><tr><th>WHEN</th><th>USER</th><th>ACTION</th><th>LOCATION</th></tr></thead><tbody>
 <?php foreach($activity as $a):?><tr><td><?=e($a['created_at'])?></td><td><span class="act-user"><?=e($a['username'])?></span><span class="act-role"><?=e(strtoupper($a['role']))?></span></td><td><?=e($a['action'])?><?php if(!empty($a['entity_type'])&&$a['entity_type']!=='VALIDATION'):?> <span class="act-role"><?=e($a['entity_type'])?></span><?php endif?></td><td><?php if(!empty($a['entity_id'])):?><a class="act-loc" href="audit.php?location=<?=urlencode($a['entity_id'])?>"><?=e($a['entity_id'])?></a><?php else:?>—<?php endif?></td></tr><?php endforeach?>

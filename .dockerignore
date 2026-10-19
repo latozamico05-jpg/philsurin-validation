@@ -1,0 +1,15 @@
+# Keep the Docker image small + avoid leaking local scratch into production
+.git/
+.vscode/
+node_modules/
+portable-git/
+_backup_before_10am_restore/
+_restore10am/
+_reverted_20261009_1430/
+_removed_morning_20261006/
+_tests/
+data/*.log
+_*.txt
+_*.log
+_*.js
+ actually-ignore-me

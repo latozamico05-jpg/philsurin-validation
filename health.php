@@ -1,19 +1,17 @@
 <?php
-// PHILSURIN health endpoint for 24/7 uptime monitors (UptimeRobot, cron, Docker HEALTHCHECK).
+// PHILSURIN health endpoint for 24/7 uptime monitors (UptimeRobot, cron, Docker HEALTHCHECK, Render).
 // GET health.php -> {"ok":true,...}  No login required. Never exposes credentials.
+// Uses the same MySQL-first + SQLite-fallback opener as the app, so it returns 200
+// on a fresh deploy with zero env vars (SQLite auto-creates + seeds).
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
-$out = ['ok' => true, 'app' => 'philsurin', 'time' => gmdate('c'), 'db' => 'down', 'pending_sync_hint' => 'POST sync.php when online'];
+$out = ['ok' => true, 'app' => 'philsurin', 'time' => gmdate('c'), 'db' => 'down'];
+require_once __DIR__ . '/db-fallback.php';
 try {
-    $h = getenv('DB_HOST') ?: 'localhost';
-    $port = getenv('DB_PORT') ?: '';
-    $n = getenv('DB_NAME') ?: 'philsurin';
-    $u = getenv('DB_USER') ?: 'root';
-    $p = getenv('DB_PASS') !== false ? getenv('DB_PASS') : '';
-    $host = $port !== '' ? "{$h};port={$port}" : $h;
-    $db = new PDO("mysql:host={$host};dbname={$n};charset=utf8mb4", $u, $p, [PDO::ATTR_TIMEOUT => 3, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-    $db->query('SELECT 1');
+    $db = philsurin_open_db();
+    $driver = function_exists('philsurin_db_driver') ? philsurin_db_driver($db) : 'mysql';
     $out['db'] = 'up';
+    $out['driver'] = $driver;
     try { $out['grading_rows'] = (int) $db->query('SELECT COUNT(*) FROM grading_records')->fetchColumn(); } catch (Throwable $t) {}
 } catch (Throwable $e) {
     http_response_code(503);

@@ -79,7 +79,7 @@ if (!function_exists('philsurin_can_audit')) {
     // Admin-only: system activity reveals who used the system and from where.
     function philsurin_can_audit(?array $user = null): bool
     {
-        return philsurin_is_admin($user);
+        return in_array(philsurin_role($user), philsurin_allowed_roles(), true);
     }
 }
 if (!function_exists('philsurin_can_export')) {

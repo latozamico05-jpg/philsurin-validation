@@ -17,6 +17,24 @@ if (isset($_SERVER['HTTP_X_VERCEL_ID']) || getenv('VERCEL') !== false) {
     $_SERVER['HTTPS'] = 'on';
 }
 
+// Public base URL for the devtunnel (used by AJAX/fetch endpoints and redirect Location headers
+// when the app is reached via https://lnmmkbpg-3000.asse.devtunnels.ms instead of localhost).
+// AUTO-DETECT: when behind the devtunnel proxy (Host = *.devtunnels.ms) the app's
+// real base is the tunnel ROOT (/) — /audit.php, not /philsurin/audit.php.
+// Hard-coding /philsurin/ as BASE_URL broke redirects + cookies on the tunnel.
+(function () {
+    $host = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_HOST'] ?? $_SERVER['HTTP_HOST'] ?? ''));
+    $isTunnel = (strpos($host, 'devtunnels.ms') !== false) || (strpos($host, 'localhost:3000') !== false) || (strpos($host, '127.0.0.1:3000') !== false);
+    $envBase = getenv('API_BASE_URL');
+    if ($envBase) { $base = rtrim($envBase, '/'); }
+    elseif ($isTunnel && $host !== '') {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $base = $scheme . '://' . $host;
+    } else { $base = 'http://localhost/philsurin'; }
+    if (!defined('API_BASE_URL')) define('API_BASE_URL', $base);
+    if (!defined('BASE_URL')) define('BASE_URL', $base);
+})();
+
 if (!function_exists('e')) { function e($value) { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); } }
 if (!function_exists('require_login')) { function require_login() { if (empty($_SESSION['user'])) { header('Location: index.php'); exit; } } }
 $script = basename($_SERVER['SCRIPT_NAME'] ?? '');
@@ -26,13 +44,11 @@ function is_index_guest_request($script) {
 		&& empty($_GET['logout']);
 }
 try {
-	$db_host = getenv('DB_HOST') ?: 'localhost';
-	$db_port = getenv('DB_PORT') ?: '';
-	$db_name = getenv('DB_NAME') ?: 'philsurin';
-	$db_user = getenv('DB_USER') ?: 'root';
-	$db_pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : '';
-	$dsn_host = $db_port !== '' ? "{$db_host};port={$db_port}" : $db_host;
-	$db = new PDO("mysql:host={$dsn_host};dbname={$db_name};charset=utf8mb4", $db_user, $db_pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
+	require_once __DIR__ . '/db-fallback.php';
+	// Tries MySQL first; if XAMPP MySQL is down, serves from local SQLite
+	// (data/philsurin-fallback.sqlite) instead of dying with 500.
+	$db = philsurin_open_db();
+	$GLOBALS['DB_DRIVER'] = function_exists('philsurin_db_driver') ? philsurin_db_driver($db) : 'mysql';
 	require_once __DIR__ . '/db-bootstrap.php';
 	// Auto-create tables + seed on EVERY host (Vercel/external MySQL has no phpMyAdmin step).
 	try {

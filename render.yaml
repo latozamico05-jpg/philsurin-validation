@@ -19,4 +19,8 @@ services:
       - key: DB_PASS
         sync: false
       - key: SESSION_HANDLER
-        value: db
+        value: files
+      - key: SYNC_KEY
+        sync: false
+        description: "Long random string shared with your PC (sync.key). Enables /cloud-sync.php 2-way sync."
+

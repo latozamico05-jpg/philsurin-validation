@@ -45,8 +45,11 @@ const LISTEN_HOST = opt('host', '0.0.0.0');
 const UP_HOST = opt('upstream', '127.0.0.1');
 const UP_PORT = parseInt(opt('upstream-port', '80'), 10);
 // Path the app is mounted at on Apache. Trailing slashes are stripped so the
-// join logic below has exactly one shape to reason about.
-const PREFIX = ('/' + opt('prefix', 'philsurin')).replace(/\/+$/, '');
+// join logic below has exactly one shape to reason about. Leading slashes are
+// collapsed too: passing --prefix /philsurin on Windows shells used to build
+// '//philsurin' (double slash), which broke the error page text and could make
+// Apache log '(20025)The given path contained wildcard characters' on some builds.
+const PREFIX = ('/' + opt('prefix', 'philsurin')).replace(/\/+$/, '').replace(/^\/+/, '/');
 const HEALTH_PATH = '/_proxy-health';
 
 // Headers that describe a single connection and must not be forwarded blindly,
@@ -116,14 +119,28 @@ const server = http.createServer((req, res) => {
   const upstreamPath = toUpstreamPath(req.url);
   const started = Date.now();
 
-  // Copy the client's headers, minus Host (keep the browser-visible host so
-  // PHP's HTTP_HOST matches the tunnel origin) and minus hop-by-hop entries.
+  // Copy the client's headers, minus hop-by-hop entries.
+  // FORWARD the browser-visible Host + proto so PHP sessions, Secure cookies
+  // and Location headers all match the tunnel origin (this is what makes
+  // /audit.php stay logged in instead of bouncing to login every load).
+  const incomingHost = req.headers.host || '';
   const outHeaders = {};
   for (const [k, v] of Object.entries(req.headers)) {
     const lk = k.toLowerCase();
     if (lk === 'host' || HOP_BY_HOP.has(lk)) continue;
     outHeaders[k] = v;
   }
+  if (incomingHost) {
+    outHeaders['host'] = incomingHost;
+    outHeaders['X-Forwarded-Host'] = incomingHost;
+  }
+  // The tunnel terminates TLS before us (we see plain http), but the browser
+  // is on https — tell PHP so Secure cookies + HTTPS detection stay correct.
+  if (!outHeaders['X-Forwarded-Proto'] && !outHeaders['x-forwarded-proto']) {
+    const looksTunnel = /devtunnels\.ms|https/i.test(incomingHost + ' ' + (req.headers.referer || ''));
+    outHeaders['X-Forwarded-Proto'] = looksTunnel ? 'https' : 'http';
+  }
+  outHeaders['X-Forwarded-Prefix'] = PREFIX;
 
   const upReq = http.request(
     { host: UP_HOST, port: UP_PORT, method: req.method, path: upstreamPath, headers: outHeaders },
@@ -133,6 +150,16 @@ const server = http.createServer((req, res) => {
         const lk = k.toLowerCase();
         if (HOP_BY_HOP.has(lk)) continue;
         if (lk === 'location') { resHeaders[k] = rewriteLocation(v); continue; }
+        // Apache sets session cookies with Path=/philsurin/ — the browser on
+        // the tunnel root (/) would never send them back, killing the login
+        // on every /audit.php load. Rewrite to Path=/ so the session sticks.
+        if (lk === 'set-cookie' && v) {
+          const arr = Array.isArray(v) ? v : [v];
+          resHeaders[k] = arr.map((c) =>
+            String(c).replace(/Path=\/philsurin\/?/gi, 'Path=/')
+          );
+          continue;
+        }
         resHeaders[k] = v;
       }
       res.writeHead(upRes.statusCode, resHeaders);

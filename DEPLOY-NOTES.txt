@@ -1,0 +1,3 @@
+<?php
+// config addition - put at TOP of config.php after HTTPS block
+// Generic cloud base-url: works on Render/Railway/Fly/devtunnel/localhost

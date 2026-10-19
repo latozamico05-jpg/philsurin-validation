@@ -11,7 +11,12 @@
     "watch": "npm run check && clasp push --watch",
     "open": "clasp open",
     "deploy": "npm run push && clasp deploy --description \"PHILSURIN web app\"",
-    "logs": "clasp logs --watch"
+    "logs": "clasp logs --watch",
+    "start": "node auto-start.js",
+    "proxy": "node devtunnel-proxy.js --port 3000 --upstream-port 80 --prefix /philsurin",
+    "tunnel": "node devtunnel-proxy.js --port 3000 --upstream-port 80 --prefix /philsurin",
+    "health": "node health-check.js",
+    "autostart": "node auto-start.js"
   },
   "devDependencies": {
     "@google/clasp": "^2.4.2",
