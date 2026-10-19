@@ -1,0 +1,11 @@
+# Render Blueprint - 1-click deploy, PC can stay OFF
+services:
+  - type: web
+    name: philsurin-validation
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.new
+    healthCheckPath: /health_fixed.php
+    envVars:
+      - key: SESSION_HANDLER
+        value: files

@@ -1,0 +1,59 @@
+# PHILSURIN — Production VPS Stack (AWS EC2 / DigitalOcean / Linode)
+# Run on your VPS:  docker compose -f docker-compose.prod.yml up -d
+#
+# 1. copy .env.example to .env  and fill in your passwords
+# 2. docker compose -f docker-compose.prod.yml up -d --build
+# 3. curl http://localhost:80/health.php
+#
+# App:  http://<VPS-IP>:80
+# MySQL: port 3306 (bound only to localhost inside the VPS network)
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass-change-me}
+      MYSQL_DATABASE: ${DB_NAME:-philsurin}
+      MYSQL_USER: ${DB_USER:-philsurin}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-change-me-strong}
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootpass-change-me}"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    # MySQL only listens on the Docker internal network — not exposed to the public internet
+    ports:
+      - "127.0.0.1:3306:3306"
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    volumes:
+      - .:/var/www/html
+      - philsurin-data:/var/www/html/data
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-philsurin}
+      DB_USER: ${DB_USER:-philsurin}
+      DB_PASS: ${DB_PASSWORD:-change-me-strong}
+      SESSION_HANDLER: files
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health.php"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  dbdata:
+  philsurin-data:
