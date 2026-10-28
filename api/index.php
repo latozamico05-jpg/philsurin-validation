@@ -1,6 +1,10 @@
 <?php
 require_once __DIR__.'/bootstrap.php';
-$path=trim(parse_url($_SERVER['REQUEST_URI']??'',PHP_URL_PATH),'/');
+$forwardedPath = (string)($_GET['path'] ?? '');
+$requestPath = $forwardedPath !== ''
+    ? $forwardedPath
+    : (string)($_SERVER['PATH_INFO'] ?? $_SERVER['HTTP_X_ORIGINAL_URL'] ?? $_SERVER['REQUEST_URI'] ?? '');
+$path=trim(parse_url($requestPath,PHP_URL_PATH),'/');
 $apiPos=strpos($path,'api/'); $route=$apiPos===false ? '' : substr($path,$apiPos+4); $method=$_SERVER['REQUEST_METHOD'];
 
 if ($route==='auth/session' && $method==='GET') { $u=api_user(); api_success(['userId'=>(int)$u['id'],'name'=>$u['username'],'role'=>$u['role'] ?: 'VIEWER']); }
