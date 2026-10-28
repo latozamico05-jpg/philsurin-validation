@@ -5,7 +5,9 @@ $requestPath = $forwardedPath !== ''
     ? $forwardedPath
     : (string)($_SERVER['PATH_INFO'] ?? $_SERVER['HTTP_X_ORIGINAL_URL'] ?? $_SERVER['REQUEST_URI'] ?? '');
 $path=trim(parse_url($requestPath,PHP_URL_PATH),'/');
-$apiPos=strpos($path,'api/'); $route=$apiPos===false ? '' : substr($path,$apiPos+4); $method=$_SERVER['REQUEST_METHOD'];
+$route=preg_replace('#^api(?:/|$)#i','',$path) ?? $path;
+$route=trim($route,'/');
+$method=$_SERVER['REQUEST_METHOD'];
 
 if ($route==='auth/session' && $method==='GET') { $u=api_user(); api_success(['userId'=>(int)$u['id'],'name'=>$u['username'],'role'=>$u['role'] ?: 'VIEWER']); }
 if ($route==='mobile/status' && $method==='GET') { $u=api_user(); $role=strtolower((string)($u['role'] ?? 'viewer')); $me=['id'=>$u['id'],'username'=>$u['username'],'role'=>$u['role']]; $stages=function_exists('philsurin_allowed_stages') ? philsurin_allowed_stages($me) : []; api_success(['user'=>['userId'=>(int)$u['id'],'name'=>$u['username'],'role'=>$u['role']],'canEncode'=>function_exists('philsurin_can_encode') ? philsurin_can_encode($me) : false,'canAudit'=>function_exists('philsurin_can_audit') ? philsurin_can_audit($me) : false,'canExport'=>function_exists('philsurin_can_export') ? philsurin_can_export($me) : false,'allowedStages'=>$stages]); }
