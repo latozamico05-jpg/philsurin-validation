@@ -92,7 +92,10 @@ if (is_index_guest_request($script) && !empty($_SESSION['user']) && strtolower((
 // Assets must never print before a redirect: early output breaks
 // require_login() and the logout bounce with "headers already sent".
 // Emit them only for signed-in pages, or for the guest login screen itself.
-$asset_safe = !isset($_GET['logout']) && (!empty($_SESSION['user']) || $script === 'index.php');
+$is_api_request = defined('PHILSURIN_API_REQUEST')
+	|| strpos($_SERVER['SCRIPT_NAME'] ?? '', '/api/') !== false
+	|| strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== false;
+$asset_safe = !$is_api_request && !isset($_GET['logout']) && (!empty($_SESSION['user']) || $script === 'index.php');
 $page_scripts = [
 	'index.php' => ['validation-form.js','location-id-preview.js?v=blank-20261001','login-brand.js','password-eye.js'],
 	'users.php' => ['password-eye.js'],
@@ -102,7 +105,7 @@ $asset_pages = ['index.php','dashboard.php','users.php','locations.php','locatio
 // JSON / XML / CSV endpoints must never receive page chrome: any HTML printed
 // before the body breaks the client's parser (Excel exports, PWA fetch, API).
 $asset_excluded = ['report_data.php','validation_data.php','progress_data.php','export.php','import.php','offline-data.php','export_locations.php','sync.php','health.php'];
-if ($asset_safe && in_array($script, $asset_pages, true) && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && strpos($_SERVER['SCRIPT_NAME'] ?? '', '/api/') === false && !in_array($script, $asset_excluded, true)) {
+if ($asset_safe && in_array($script, $asset_pages, true) && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !in_array($script, $asset_excluded, true)) {
 	$theme_v = @filemtime(__DIR__ . '/ios-theme.css') ?: time();
 	$oq_v = @filemtime(__DIR__ . '/offline-queue.js') ?: time();
 	$sw_v = @filemtime(__DIR__ . '/sw.js') ?: time();
@@ -120,7 +123,6 @@ if ($asset_safe && in_array($script, $asset_pages, true) && ($_SERVER['REQUEST_M
 // Sidebar is page chrome for the web UI. Guard it so JSON/XML endpoints and the
 // /api/ routes never get HTML prepended to their body (that broke client-side
 // JSON parsing and Excel exports).
-$is_api_request = strpos($_SERVER['SCRIPT_NAME'] ?? '', '/api/') !== false;
 if (!empty($_SESSION['user']) && is_index_guest_request($script) && !$is_api_request && is_file(__DIR__ . '/sidebar.php')) {
 	require __DIR__ . '/sidebar.php';
 }

@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+define('PHILSURIN_API_REQUEST', true);
 require_once dirname(__DIR__) . '/config.php';
 
 // --- Expo Go bridge: CORS so a phone app (Expo Go / browser on another
