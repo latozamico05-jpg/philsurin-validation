@@ -1,0 +1,9 @@
+# Keep Docker/container config out of the Vercel build.
+# Vercel treats a root docker-compose file with `build: .` as a container
+# service, which fails because the Dockerfiles are disabled.
+docker-compose.yml
+docker-compose.prod.yml
+Dockerfile*
+.dockerignore
+render.yaml
+render_new.yaml
