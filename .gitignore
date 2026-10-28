@@ -63,3 +63,5 @@ test-uploader-report.txt
 -1
 c.clientWidth})
 
+.vercel
+.env*
